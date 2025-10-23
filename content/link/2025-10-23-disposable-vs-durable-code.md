@@ -42,7 +42,7 @@ Just as it [did with typing before]({{< ref "blog/2025-08-when-everyone-gets-a-g
 a skill every office worker just need to have. Not that all of us are writers, just because of it.
 
 I'm also excited at how working with a genie might open up codebases,
-so fewer people can own and maintain larger codebases (because maintenance is in communication within a team).
+so you need fewer people to own and maintain larger codebases (because maintenance is in communication within a team).
 
 For example, I recently contributed to a new codebase in relatively little time
 and it was done so fast to the genie figuring out where to make changes.
