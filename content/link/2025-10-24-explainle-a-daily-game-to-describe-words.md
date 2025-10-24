@@ -16,4 +16,4 @@ The twist compared to straight up "the opposite of this" is that
 there are "forbidden words" that you're not allowed to use,
 and only 100 characters.
 
-{{< figure src="/img/2025/10-explainle.jpeg" caption="Luckily for me it's relying on an LLM is therefore quite nerdy, so I can explain it in language _I_ understand" alt="Screenshot of Explainle game showing the word AGGREGATE with forbidden words (total, sum, combine, collection, accumulate) crossed out. Previous attempt shows explanation 'an SQL AVG statement needs a GROUP BY because it's an...' with the guess AGGREGATE marked correct with a green checkmark.">}}
+{{< figure src="/img/2025/10-explainle.jpeg" caption="Luckily for me, it's relying on an LLM and is therefore quite nerdy, so I can explain it in language _I_ understand" alt="Screenshot of Explainle game showing the word AGGREGATE with forbidden words (total, sum, combine, collection, accumulate) crossed out. Previous attempt shows explanation 'an SQL AVG statement needs a GROUP BY because it's an...' with the guess AGGREGATE marked correct with a green checkmark.">}}
