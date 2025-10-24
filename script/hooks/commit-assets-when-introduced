@@ -1,0 +1,52 @@
+#!/bin/bash
+# Pre-commit hook to ensure referenced asset files are staged
+#
+# This hook checks if any files in the staged changes reference asset files
+# that are currently untracked or unstaged. If such references are found,
+# the commit is aborted with a helpful error message.
+
+set -e
+
+# Get staged changes
+STAGED_CHANGES=$(git diff --cached)
+
+# Find all untracked and unstaged files under assets/
+UNSTAGED_ASSETS=$(git status --porcelain | grep "^??\|^ M\|^M " | grep "assets/" | awk '{print $2}')
+
+# Array to collect problematic files
+MISSING_FILES=()
+
+# Check each unstaged asset file
+while IFS= read -r asset_file; do
+  # Skip empty lines
+  [ -z "$asset_file" ] && continue
+
+  # Strip "assets/" prefix to get the reference path
+  # e.g., assets/img/2025/10-explainle.jpg -> img/2025/10-explainle.jpg
+  ref_path="${asset_file#assets/}"
+
+  # Check if staged changes reference this file (with or without leading /)
+  # We need to escape special regex characters in the path
+  escaped_path=$(echo "$ref_path" | sed 's/[.[\*^$()+?{|]/\\&/g')
+
+  # Match both /img/path and img/path
+  if echo "$STAGED_CHANGES" | grep -qE "/?${escaped_path}"; then
+    MISSING_FILES+=("$asset_file")
+  fi
+done <<< "$UNSTAGED_ASSETS"
+
+# If we found any missing files, abort the commit
+if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+  echo "Error: The following asset files are referenced in your staged changes but are not staged:" >&2
+  echo >&2
+  for file in "${MISSING_FILES[@]}"; do
+    echo "  - $file" >&2
+  done
+  echo >&2
+  echo "Please stage these files before committing:" >&2
+  echo "  git add ${MISSING_FILES[*]}" >&2
+  echo >&2
+  exit 1
+fi
+
+exit 0
