@@ -1,7 +1,7 @@
 ---
 authors: ['björn']
 date: '2025-10-26T12:35:12+01:00'
-lastmod: '2025-10-26T12:35:12+01:00'
+lastmod: '2025-10-27T10:14:59+01:00'
 location: Sweden
 title: 'Apple Notes can do calculations with variables'
 tags:
@@ -17,7 +17,7 @@ so usual `camelCase` or `PascalCase` will likely do you best.
 
 I realized this while trying to calculate what height TV bench I should get:
 
-{{< figure src="/img/2025/10-tv-bench-calculations.jpeg" caption="The center of the TV should be about eye level, so what height bench should I get given myself and the sofa? Seems around 60cm will be good." alt="Apple Notes calculations determining TV bench height using variables for TV size, sofa height, and eye level" >}}
+{{< figure src="/img/2025/10-tv-bench-calculations.jpeg" caption="The center of the TV should be about eye level, so what height bench should I get given myself and the sofa? Seems around 60cm will be good. **Update:** I realized the TV stand adds to the height of the TV bench, so it shouldn't be part of the center of TV calculation." alt="Apple Notes calculations determining TV bench height using variables for TV size, sofa height, and eye level" >}}
 
 Annoyingly, you can't declare a variable and see its result in one step. 
 I found two options for this, and you decide which you prefer.
