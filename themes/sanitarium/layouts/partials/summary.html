@@ -1,5 +1,5 @@
 {{- $template := "" -}}
-{{- if in (slice "blog" "crumb") .Section -}}
+{{- if in (slice "blog" "crumb" "devlog") .Section -}}
     {{- $template = "with-title" -}}
 {{- else if in (slice "til" "link" "scrap") .Section -}}
     {{- $template = "without-title" -}}

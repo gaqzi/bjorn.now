@@ -64,6 +64,11 @@ enableEmoji = true
     weight = 40
 
   [[menus.main]]
+    name = 'Devlogs'
+    pageRef = '/devlog/'
+    weight = 45
+
+  [[menus.main]]
     name = 'Posts'
     pageRef = '/blog/'
     weight = 50
@@ -102,6 +107,7 @@ enableEmoji = true
   link = "links"
   crumb = "crumbs"
   scrap = "scraps"
+  devlog = "devlogs"
 #  category = "categories"
 
 # Theme-specific settings
@@ -119,7 +125,7 @@ enableEmoji = true
 
   # Site settings
   description = "careful chaos in practice"
-  mainSections = ["blog", "til", "link", "crumb", "scrap"]
+  mainSections = ["blog", "til", "link", "crumb", "scrap", "devlog"]
   bannerSections = ["blog", "crumb"]
 
   # Theme appearance
