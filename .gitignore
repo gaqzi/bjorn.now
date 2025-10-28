@@ -3,6 +3,9 @@ public/
 resources/
 .hugo_build.lock
 
+# Python sources
+src/py/blog.egg-info/
+
 # Ignore local machine settings
 .claude/settings.local.json
 plan.md

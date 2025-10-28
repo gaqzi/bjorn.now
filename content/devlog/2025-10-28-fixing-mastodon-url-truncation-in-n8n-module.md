@@ -42,8 +42,7 @@ I really intend to share these devlogs earlier in the future, but I got lazy ðŸ˜
 
 ## The rough notes
 
-Lightly edited for the web, and I've kept the day breaks in. 
-This happened slowly over a couple of days while living my life.
+Lightly edited for the web, and I've kept the day breaks in.
 
 ### 2025-10-08
 
