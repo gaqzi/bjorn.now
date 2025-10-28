@@ -35,6 +35,7 @@ so I rolled up my sleeves and asked Claude,
 
 The key constraint: I needed to understand every line of code before shipping it,
 and it had to pass my quality standards because my [name would be on the PR.]({{< ref "blog/2025-07-your-name-is-still-on-it.md" >}})
+Happily, that worked out [becuse my PR was accepted](https://github.com/redoracle/n8n-nodes-the-mastodon/pull/4). 🙂
    
 Here's how I worked through it over three days. All [commits are here](https://github.com/gaqzi/n8n-nodes-the-mastodon/commits/url-aware-post-length-calculation/) if you want to step through them.
 I really intend to share these devlogs earlier in the future, but I got lazy 😅
@@ -499,10 +500,10 @@ I did some final cleanup yesterday and didn't document it all, it's [only availa
 > Your pull request to fix the URL character counting behavior was absolutely **fantastic** - it addressed a real problem that many users probably didn't even realize they were experiencing. The fact that Mastodon counts all URLs as exactly 23 characters regardless of their actual length is such an important detail, and your implementation handles it perfectly.
 >
 > ### What I especially appreciated about your work:
-> ✨ **Thorough Research** - You referenced the actual Mastodon source code to validate the behavior 
-> 🧪 **Comprehensive Testing** - 19 new tests covering all the edge cases! 
-> 📚 **Excellent Documentation** - Clear comments explaining the "why" behind the logic 
-> 🔧 **Smart Implementation** - The decision to remove entire URLs rather than break them is brilliant 
+> ✨ **Thorough Research** - You referenced the actual Mastodon source code to validate the behavior  
+> 🧪 **Comprehensive Testing** - 19 new tests covering all the edge cases!  
+> 📚 **Excellent Documentation** - Clear comments explaining the "why" behind the logic  
+> 🔧 **Smart Implementation** - The decision to remove entire URLs rather than break them is brilliant  
 > 🔒 **Clean Integration** - Minimal changes to existing code while adding powerful functionality
 >
 > ### The Impact:
