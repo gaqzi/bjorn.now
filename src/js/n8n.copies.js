@@ -11,9 +11,7 @@
  */
 //<EXTRACT:mastodon>
 let mastodon = (item) => {
-    let msg = item.json.contentSnippet,
-        msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline
-        isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,
+    let msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline
         truncateIndicator = '\n… more';
 
     let wordTruncate = (str, n, indicator) => {
@@ -32,8 +30,9 @@ let mastodon = (item) => {
         return ret.substring(0, i).trimEnd();
     }
 
-    msg = wordTruncate(msg, msgLength, truncateIndicator);
-    let retMsg = isTruncated ? msg + truncateIndicator : msg,
+    let msg = wordTruncate(item.json.contentSnippet, msgLength, truncateIndicator),
+        isTruncated = msg !== item.json.contentSnippet,
+        retMsg = isTruncated ? msg + truncateIndicator : msg,
         link = item.json.link;
 
     // Don't link to scraps when it's all contained in the post.
@@ -47,9 +46,7 @@ let mastodon = (item) => {
 
 //<EXTRACT:bsky>
 let bsky = (item) => {
-    let msg = item.json.contentSnippet,
-        msgLength = 300, // length of a bsky post
-        isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,
+    let msgLength = 300, // length of a bsky post
         truncateIndicator = '\n… more';
 
     let wordTruncate = (str, n, indicator) => {
@@ -68,14 +65,16 @@ let bsky = (item) => {
         return ret.substring(0, i).trimEnd();
     }
 
-    msg = wordTruncate(msg, msgLength, truncateIndicator);
+    let msg = wordTruncate(item.json.contentSnippet, msgLength, truncateIndicator),
+        isTruncated = msg !== item.json.contentSnippet;
+
     return isTruncated ? msg + truncateIndicator : msg;
 }
 //</EXTRACT:bsky>
 
 //<EXTRACT:bskyLinkCard>
 let bskyLinkCard = (item) => {
-    let isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet
+    let isTruncated = item.json.contentSnippet.length > 300;
 
     return !isTruncated && item.json.link.includes('/scrap/') ? '' : item.json.link.replace('utm_medium=feed', 'utm_medium=bsky');
 }

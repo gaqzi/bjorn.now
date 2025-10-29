@@ -12,7 +12,6 @@ function item(overrides = {}) {
     return {
         json: Object.assign({
             contentSnippet: 'hello world',
-            'content:encodedSnippet': 'hello world',
             link: 'https://example.com/123' // only to force it to 23chars to make life easier for me
         }, overrides)
     }
@@ -27,7 +26,6 @@ describe('mastodon status', () => {
 
     test(`is post is more than 500 chars then add "…more" and truncate to a total of 476 chars`, () => {
         let actual = n8n.mastodon(item({
-            'content:encodedSnippet': 'a'.repeat(5000),
             'contentSnippet': 'a'.repeat(500) // used for getting the content to share
         }))
 
@@ -44,7 +42,6 @@ describe('mastodon status', () => {
     describe(`special scrap handling`, () => {
         test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
             let actual = n8n.mastodon(item({
-                'content:encodedSnippet': 'a'.repeat(5000),
                 'contentSnippet': 'a'.repeat(500), // used for getting the content to share
                 'link': 'https://example.com/scrap/hello-world',
             }))
@@ -71,7 +68,6 @@ describe('bsky status', () => {
 
     test(`is post is more than 300 chars then add "…more" and truncate to a total of 300 chars`, () => {
         let actual = n8n.bsky(item({
-            'content:encodedSnippet': 'a'.repeat(5000),
             'contentSnippet': 'a'.repeat(500) // used for getting the content to share
         }))
 
@@ -82,7 +78,6 @@ describe('bsky status', () => {
     describe(`special scrap handling`, () => {
         test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
             let actual = n8n.bsky(item({
-                'content:encodedSnippet': 'a'.repeat(5000),
                 'contentSnippet': 'a'.repeat(500), // used for getting the content to share
                 'link': 'https://example.com/scrap/hello-world',
             }))
@@ -101,7 +96,6 @@ describe('bsky link card attacher', () => {
 
     test(`is post is more than 300 chars then return the link`, () => {
         let actual = n8n.bskyLinkCard(item({
-            'content:encodedSnippet': 'a'.repeat(5000),
             'contentSnippet': 'a'.repeat(500) // used for getting the content to share
         }))
 
@@ -110,7 +104,6 @@ describe('bsky link card attacher', () => {
 
     test(`if the link has utm_medium=feed then change it to utm_medium=bsky`, () => {
         let actual = n8n.bskyLinkCard(item({
-            'content:encodedSnippet': 'a'.repeat(5000),
             'contentSnippet': 'a'.repeat(500), // used for getting the content to share
             'link': 'https://example.com/?utm_medium=feed'
         }))
@@ -122,7 +115,6 @@ describe('bsky link card attacher', () => {
     describe(`special scrap handling`, () => {
         test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
             let actual = n8n.bskyLinkCard(item({
-                'content:encodedSnippet': 'a'.repeat(5000),
                 'contentSnippet': 'a'.repeat(500), // used for getting the content to share
                 'link': 'https://example.com/scrap/hello-world',
             }))
