@@ -9,6 +9,7 @@
  * @param item { json: { contentSnippet: string, 'content:encodedSnippet': string, link: string } }
  * @returns {string}
  */
+//<EXTRACT:mastodon>
 let mastodon = (item) => {
     let msg = item.json.contentSnippet,
         msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline
@@ -42,6 +43,7 @@ let mastodon = (item) => {
 
     return retMsg + `\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`
 }
+//</EXTRACT:mastodon>
 // )($('RSS Feed Trigger').item)
 
 let bsky = (item) => {

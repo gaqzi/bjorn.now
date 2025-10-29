@@ -1,0 +1,32 @@
+#!/bin/bash
+# This script will read the specified file and update it the web,
+# assumed to be a temporary file.
+# Then the update as returned by n8n is stored in the second argument,
+# OR if empty, into the default workflow file.
+source .env
+
+: ${workflow_id:=TCuBWAGiOB1WpXVy}
+: ${N8N_HOST:=http://localhost:5678}
+
+# Default to storing in the workflow we have
+OUTPUT=$2
+if [ -z "$OUTPUT" ]; then
+  OUTPUT=bjorn.now-feed-distribution.json
+fi
+
+if [ ! -s "$1" ] ; then
+  echo "file '$1' does not exist or is empty" >&2
+  exit 1
+fi
+
+cat $1 | jq '{
+           name,
+           nodes,
+           connections,
+           settings
+         }' | \
+  curl -X PUT "${N8N_HOST}/api/v1/workflows/${workflow_id}" \
+    -H "X-N8N-API-KEY: ${N8N_API_KEY}" \
+    -H "Content-Type: application/json" \
+    -d @- |
+    jq > $OUTPUT

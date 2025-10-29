@@ -1,0 +1,235 @@
+{
+  "createdAt": "2025-09-21T17:22:14.815Z",
+  "updatedAt": "2025-10-29T14:45:26.447Z",
+  "id": "TCuBWAGiOB1WpXVy",
+  "name": "bjorn.now feed distribution",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "feedUrl": "https://bjorn.now/feed.xml"
+      },
+      "type": "n8n-nodes-base.rssFeedReadTrigger",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        64
+      ],
+      "id": "7f1f3f26-1516-462e-8470-e87ed455fbed",
+      "name": "RSS Feed Trigger",
+      "retryOnFail": true,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "chatId": "@BjornNow",
+        "text": "={{ $json.link.replace(\"medium=feed\", \"medium=telegram\") }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "ea2afc1b-8446-40ae-a9f1-46f008d8a7a4",
+      "name": "Send a text message",
+      "webhookId": "bd9848ec-3c71-4d63-b9d7-90a2c2bd92b2",
+      "retryOnFail": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "ykhFxvuVtnDVQnkd",
+          "name": "BjornNowBot"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://hachyderm.io",
+        "status": "={{ ((item) => {\n    let msg = item.json.contentSnippet,\n        msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline\n        isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,\n        truncateIndicator = '\\n… more';\n\n    let wordTruncate = (str, n, indicator) => {\n        if (indicator === undefined) indicator = '…';\n        if(str.length <= n) return str.trimEnd();\n\n        n -= indicator.length;\n        if(str[n] === ' ') return str.substring(0, n).trimEnd();\n\n        let ret = str.substring(0, n).trimEnd(),\n            i = ret.lastIndexOf(' ');\n\n        // when there are no spaces at all, just cut in the middle of the text.\n        if (i === -1) return ret.substring(0, n);\n\n        return ret.substring(0, i).trimEnd();\n    }\n\n    msg = wordTruncate(msg, msgLength, truncateIndicator);\n    let retMsg = isTruncated ? msg + truncateIndicator : msg,\n        link = item.json.link;\n\n    // Don't link to scraps when it's all contained in the post.\n    if(!isTruncated && link.includes('/scrap/')) {\n        return msg;\n    }\n\n    return retMsg + `\\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`\n})($('RSS Feed Trigger').item) }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-the-mastodon.mastodon",
+      "typeVersion": 1,
+      "position": [
+        224,
+        64
+      ],
+      "id": "e1bd320b-1222-4324-9168-22372d2e667c",
+      "name": "Create a status",
+      "retryOnFail": true,
+      "credentials": {
+        "mastodonOAuth2Api": {
+          "id": "T1QmCwO9FBth8buN",
+          "name": "@gaqzi@hachyderm.io"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "postText": "={{ \n((item) => {\n    let msg = item.json.contentSnippet,\n        msgLength = 300, // length of a bsky post\n        isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,\n        truncateIndicator = '\\n… more';\n\n    let wordTruncate = (str, n, indicator) => {\n        if (indicator === undefined) indicator = '…';\n        if(str.length <= n) return str.trimEnd();\n\n        n -= indicator.length;\n        if(str[n] === ' ') return str.substring(0, n).trimEnd();\n\n        let ret = str.substring(0, n).trimEnd(),\n            i = ret.lastIndexOf(' ');\n\n        // when there's no spaces at all, just cut in the middle of the text.\n        if (i === -1) return ret.substring(0, n);\n\n        return ret.substring(0, i).trimEnd();\n    }\n\n    msg = wordTruncate(msg, msgLength, truncateIndicator);\n    return isTruncated ? msg + truncateIndicator : msg;\n})($('RSS Feed Trigger').item)\n}}",
+        "websiteCard": {
+          "details": {
+            "uri": "={{ $('RSS Feed Trigger').item.json.link.replace('medium=feed', 'medium=bsky') }}",
+            "fetchOpenGraphTags": true
+          }
+        }
+      },
+      "type": "n8n-nodes-bluesky-enhanced.bluesky",
+      "typeVersion": 2,
+      "position": [
+        224,
+        256
+      ],
+      "id": "73f029c7-e8a0-43b0-8bf8-e3be9a09f7d6",
+      "name": "Create a post",
+      "retryOnFail": false,
+      "credentials": {
+        "blueskyApi": {
+          "id": "H3deLFxA1e731C02",
+          "name": "gaqzi.bjorn.now"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "RSS Feed Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create a status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Create a status": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "IikW0LhX9Scmfhh8"
+  },
+  "staticData": {
+    "node:RSS Feed Trigger": {
+      "lastItemDate": "2025-10-29T08:20:57.000Z"
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "RSS Feed Trigger": [
+      {
+        "json": {
+          "title": "Explainle: a daily game to describe words",
+          "link": "https://bjorn.now/link/2025-10-24-explainle-a-daily-game-to-describe-words/?utm_medium=feed",
+          "pubDate": "Fri, 24 Oct 2025 14:42:18 +0200",
+          "content:encoded": "<p>I have enjoyed doing the daily <a href=\"https://explainle.org?utm_source=bjorn.now\">Explainle.org</a>\nfor the last couple of days. It triggers some of the fun bits of language for me. 🙂</p>\n<p>The twist compared to straight up &ldquo;the opposite of this&rdquo; is that\nthere are &ldquo;forbidden words&rdquo; that you&rsquo;re not allowed to use,\nand only 100 characters.</p>\n<figure><img src=\"/img/2025/10-explainle.jpeg\"\n    alt=\"Screenshot of Explainle game showing the word AGGREGATE with forbidden words (total, sum, combine, collection, accumulate) crossed out. Previous attempt shows explanation &#39;an SQL AVG statement needs a GROUP BY because it&#39;s an...&#39; with the guess AGGREGATE marked correct with a green checkmark.\"><figcaption>\n      <p>Luckily for me, it&rsquo;s relying on an LLM and is therefore quite nerdy, so I can explain it in language <em>I</em> understand</p>\n    </figcaption>\n</figure>\n\n",
+          "content:encodedSnippet": "I have enjoyed doing the daily Explainle.org\nfor the last couple of days. It triggers some of the fun bits of language for me. 🙂\nThe twist compared to straight up “the opposite of this” is that\nthere are “forbidden words” that you’re not allowed to use,\nand only 100 characters.\n\n      \nLuckily for me, it’s relying on an LLM and is therefore quite nerdy, so I can explain it in language I understand",
+          "content": "I have enjoyed doing the daily Explainle.org for the last couple of days. It triggers some of the fun bits of language for me. 🙂\nThe twist compared to straight up “the opposite of this” is that there are “forbidden words” that you’re not allowed to use, and only 100 characters.\nLuckily for me, it’s relying on an LLM and is therefore quite nerdy, so I can explain it in language I understand",
+          "contentSnippet": "I have enjoyed doing the daily Explainle.org for the last couple of days. It triggers some of the fun bits of language for me. 🙂\nThe twist compared to straight up “the opposite of this” is that there are “forbidden words” that you’re not allowed to use, and only 100 characters.\nLuckily for me, it’s relying on an LLM and is therefore quite nerdy, so I can explain it in language I understand",
+          "guid": "https://bjorn.now/link/2025-10-24-explainle-a-daily-game-to-describe-words/",
+          "isoDate": "2025-10-24T12:42:18.000Z"
+        }
+      }
+    ]
+  },
+  "versionId": "6f00b36f-90f8-41aa-bd73-825c2c0a21f5",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "createdAt": "2025-09-21T17:22:14.823Z",
+      "updatedAt": "2025-09-21T17:22:14.823Z",
+      "role": "workflow:owner",
+      "workflowId": "TCuBWAGiOB1WpXVy",
+      "projectId": "PnKxgrRa4Ynyl6N7",
+      "project": {
+        "createdAt": "2025-09-21T17:05:27.774Z",
+        "updatedAt": "2025-09-21T17:13:07.455Z",
+        "id": "PnKxgrRa4Ynyl6N7",
+        "name": "Björn Andersson <ba@sanitarium.se>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "projectRelations": [
+          {
+            "createdAt": "2025-09-21T17:05:27.775Z",
+            "updatedAt": "2025-09-21T17:05:27.775Z",
+            "userId": "d8859ca6-9575-4feb-ae71-e430a1e50f7e",
+            "projectId": "PnKxgrRa4Ynyl6N7",
+            "user": {
+              "createdAt": "2025-09-21T17:05:27.259Z",
+              "updatedAt": "2025-10-29T11:04:36.000Z",
+              "id": "d8859ca6-9575-4feb-ae71-e430a1e50f7e",
+              "email": "ba@sanitarium.se",
+              "firstName": "Björn",
+              "lastName": "Andersson",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2025-09-21T17:13:11.866Z",
+                "personalization_survey_n8n_version": "1.111.1"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "7qfW2SIrNsld8tAB",
+                "userActivatedAt": 1758479217895,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1759918329420
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2025-10-29",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": []
+}
