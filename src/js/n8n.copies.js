@@ -25,14 +25,21 @@ let mastodon = (item) => {
         let ret = str.substring(0, n).trimEnd(),
             i = ret.lastIndexOf(' ');
 
-        // when there's no spaces at all, just cut in the middle of the text.
+        // when there are no spaces at all, just cut in the middle of the text.
         if (i === -1) return ret.substring(0, n);
 
         return ret.substring(0, i).trimEnd();
     }
 
     msg = wordTruncate(msg, msgLength, truncateIndicator);
-    let retMsg = isTruncated ? msg + truncateIndicator : msg;
+    let retMsg = isTruncated ? msg + truncateIndicator : msg,
+        link = item.json.link;
+
+    // Don't link to scraps when it's all contained in the post.
+    if(!isTruncated && link.includes('/scrap/')) {
+        return msg;
+    }
+
     return retMsg + `\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`
 }
 // )($('RSS Feed Trigger').item)

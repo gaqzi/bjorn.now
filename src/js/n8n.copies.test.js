@@ -41,4 +41,22 @@ describe('mastodon status', () => {
 
         assert.strictEqual(actual, 'hello world\nhttps://example.com/?utm_medium=mastodon')
     })
+
+    describe(`special scrap handling`, () => {
+        test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
+            let actual = n8n.mastodon(item({
+                'content:encodedSnippet': 'a'.repeat(5000),
+                'contentSnippet': 'a'.repeat(500), // used for getting the content to share
+                'link': 'https://example.com/scrap/hello-world',
+            }))
+
+            assert.strictEqual(actual, 'a'.repeat('469') + '\n… more\nhttps://example.com/scrap/hello-world')
+        })
+
+        test(`if link contains /scrap/ and it's not truncated, don't include the link`, () => {
+            let actual = n8n.mastodon(item({link: 'https://example.com/scrap/hello-world'}))
+
+            assert.strictEqual(actual, 'hello world')
+        })
+    })
 })
