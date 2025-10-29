@@ -59,3 +59,81 @@ describe('mastodon status', () => {
         })
     })
 })
+
+
+// bsky doesn't have to deal with any special link handling, it's attached as a card to the post.
+describe('bsky status', () => {
+    test(`if post is less than 300 chars then no "…more" is added`, () => {
+        let actual = n8n.bsky(item())
+
+        assert.strictEqual(actual, 'hello world')
+    })
+
+    test(`is post is more than 300 chars then add "…more" and truncate to a total of 300 chars`, () => {
+        let actual = n8n.bsky(item({
+            'content:encodedSnippet': 'a'.repeat(5000),
+            'contentSnippet': 'a'.repeat(500) // used for getting the content to share
+        }))
+
+        assert.strictEqual(actual, 'a'.repeat('293') + '\n… more')
+        assert.strictEqual(actual.length, 300)
+    })
+
+    describe(`special scrap handling`, () => {
+        test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
+            let actual = n8n.bsky(item({
+                'content:encodedSnippet': 'a'.repeat(5000),
+                'contentSnippet': 'a'.repeat(500), // used for getting the content to share
+                'link': 'https://example.com/scrap/hello-world',
+            }))
+
+            assert.strictEqual(actual, 'a'.repeat('293') + '\n… more')
+        })
+    })
+})
+
+describe('bsky link card attacher', () => {
+    test(`if post is less than 300 chars but doesn't contain /scrap/ then add link`, () => {
+        let actual = n8n.bskyLinkCard(item())
+
+        assert.strictEqual(actual, 'https://example.com/123')
+    })
+
+    test(`is post is more than 300 chars then return the link`, () => {
+        let actual = n8n.bskyLinkCard(item({
+            'content:encodedSnippet': 'a'.repeat(5000),
+            'contentSnippet': 'a'.repeat(500) // used for getting the content to share
+        }))
+
+        assert.strictEqual(actual, 'https://example.com/123')
+    })
+
+    test(`if the link has utm_medium=feed then change it to utm_medium=bsky`, () => {
+        let actual = n8n.bskyLinkCard(item({
+            'content:encodedSnippet': 'a'.repeat(5000),
+            'contentSnippet': 'a'.repeat(500), // used for getting the content to share
+            'link': 'https://example.com/?utm_medium=feed'
+        }))
+
+        assert.strictEqual(actual, 'https://example.com/?utm_medium=bsky')
+    })
+
+
+    describe(`special scrap handling`, () => {
+        test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
+            let actual = n8n.bskyLinkCard(item({
+                'content:encodedSnippet': 'a'.repeat(5000),
+                'contentSnippet': 'a'.repeat(500), // used for getting the content to share
+                'link': 'https://example.com/scrap/hello-world',
+            }))
+
+            assert.strictEqual(actual, 'https://example.com/scrap/hello-world')
+        })
+
+        test(`if link contains /scrap/ and it's not truncated, don't include the link`, () => {
+            let actual = n8n.bskyLinkCard(item({link: 'https://example.com/scrap/hello-world'}))
+
+            assert.strictEqual(actual, '')
+        })
+    })
+})

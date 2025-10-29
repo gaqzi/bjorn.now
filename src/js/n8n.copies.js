@@ -44,8 +44,8 @@ let mastodon = (item) => {
     return retMsg + `\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`
 }
 //</EXTRACT:mastodon>
-// )($('RSS Feed Trigger').item)
 
+//<EXTRACT:bsky>
 let bsky = (item) => {
     let msg = item.json.contentSnippet,
         msgLength = 300, // length of a bsky post
@@ -71,9 +71,18 @@ let bsky = (item) => {
     msg = wordTruncate(msg, msgLength, truncateIndicator);
     return isTruncated ? msg + truncateIndicator : msg;
 }
-// )($('RSS Feed Trigger').item)
+//</EXTRACT:bsky>
+
+//<EXTRACT:bskyLinkCard>
+let bskyLinkCard = (item) => {
+    let isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet
+
+    return !isTruncated && item.json.link.includes('/scrap/') ? '' : item.json.link.replace('utm_medium=feed', 'utm_medium=bsky');
+}
+//</EXTRACT:bskyLinkCard>
 
 module.exports = {
     bsky,
+    bskyLinkCard,
     mastodon
 }
