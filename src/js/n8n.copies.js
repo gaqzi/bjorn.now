@@ -33,7 +33,7 @@ let mastodon = (item) => {
 
     msg = wordTruncate(msg, msgLength, truncateIndicator);
     let retMsg = isTruncated ? msg + truncateIndicator : msg;
-    return retMsg + `\n${item.json.link}`
+    return retMsg + `\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`
 }
 // )($('RSS Feed Trigger').item)
 

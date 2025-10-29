@@ -35,4 +35,10 @@ describe('mastodon status', () => {
         assert.strictEqual(actual, 'a'.repeat('469') + '\n… more\nhttps://example.com/123')
         assert.strictEqual(actual.length, 500)
     })
+
+    test(`if the link has utm_medium=feed then change it to utm_medium=mastodon`, () => {
+        let actual = n8n.mastodon(item({link: 'https://example.com/?utm_medium=feed'}))
+
+        assert.strictEqual(actual, 'hello world\nhttps://example.com/?utm_medium=mastodon')
+    })
 })
