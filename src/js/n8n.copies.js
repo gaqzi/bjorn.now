@@ -4,7 +4,12 @@
  *
  */
 
-let mastodon = ((item) => {
+/**
+ *
+ * @param item { json: { contentSnippet: string, content: string, 'content:encodedSnippet': string, link: string } }
+ * @returns {string}
+ */
+let mastodon = (item) => {
     let msg = item.json.contentSnippet,
         msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline
         isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,
@@ -28,9 +33,10 @@ let mastodon = ((item) => {
 
     msg = wordTruncate(msg, msgLength, truncateIndicator);
     return isTruncated ? msg + truncateIndicator : msg;
-})($('RSS Feed Trigger').item)
+}
+// )($('RSS Feed Trigger').item)
 
-let bsky = ((item) => {
+let bsky = (item) => {
     let msg = item.json.contentSnippet,
         msgLength = 300, // length of a bsky post
         isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,
@@ -54,4 +60,10 @@ let bsky = ((item) => {
 
     msg = wordTruncate(msg, msgLength, truncateIndicator);
     return isTruncated ? msg + truncateIndicator : msg;
-})($('RSS Feed Trigger').item)
+}
+// )($('RSS Feed Trigger').item)
+
+module.exports = {
+    bsky,
+    mastodon
+}
