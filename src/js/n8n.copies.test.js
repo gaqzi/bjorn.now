@@ -18,44 +18,48 @@ function item(overrides = {}) {
     }
 }
 
-describe('mastodon status', () => {
-    test(`if post is less than 500 chars then no "…more" is added`, () => {
-        let actual = n8n.mastodon(item())
+function statusCreatorTest(for_, func, characterLength, linkLength) {
+    return () => {
+        test(`if post is less than ${characterLength} chars then no "…more" is added`, () => {
+            let actual = func(item())
 
-        assert.strictEqual(actual, 'hello world\nhttps://example.com/123')
-    })
+            assert.strictEqual(actual, 'hello world\nhttps://example.com/123')
+        })
 
-    test(`is post is more than 500 chars then add "…more" and truncate to a total of 476 chars`, () => {
-        let actual = n8n.mastodon(item({
-            'content:encodedSnippet': 'a'.repeat(5000),
-            'contentSnippet': 'a'.repeat(500) // used for getting the content to share
-        }))
-
-        assert.strictEqual(actual, 'a'.repeat('469') + '\n… more\nhttps://example.com/123')
-        assert.strictEqual(actual.length, 500)
-    })
-
-    test(`if the link has utm_medium=feed then change it to utm_medium=mastodon`, () => {
-        let actual = n8n.mastodon(item({link: 'https://example.com/?utm_medium=feed'}))
-
-        assert.strictEqual(actual, 'hello world\nhttps://example.com/?utm_medium=mastodon')
-    })
-
-    describe(`special scrap handling`, () => {
-        test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
-            let actual = n8n.mastodon(item({
-                'content:encodedSnippet': 'a'.repeat(5000),
-                'contentSnippet': 'a'.repeat(500), // used for getting the content to share
-                'link': 'https://example.com/scrap/hello-world',
+        test(`is post is more than ${linkLength} chars then add "… more" and truncate to a total of ${characterLength-linkLength-1} chars`, () => {
+            let actual = func(item({
+                'content:encodedSnippet': 'a'.repeat(characterLength*10),
+                'contentSnippet': 'a'.repeat(characterLength) // used for getting the content to share
             }))
 
-            assert.strictEqual(actual, 'a'.repeat('469') + '\n… more\nhttps://example.com/scrap/hello-world')
+            assert.strictEqual(actual, 'a'.repeat(characterLength-linkLength-8) + '\n… more\nhttps://example.com/123')
+            assert.strictEqual(actual.length, characterLength)
         })
 
-        test(`if link contains /scrap/ and it's not truncated, don't include the link`, () => {
-            let actual = n8n.mastodon(item({link: 'https://example.com/scrap/hello-world'}))
+        test(`if the link has utm_medium=feed then change it to utm_medium=${for_}`, () => {
+            let actual = func(item({link: 'https://example.com/?utm_medium=feed'}))
 
-            assert.strictEqual(actual, 'hello world')
+            assert.strictEqual(actual, `hello world\nhttps://example.com/?utm_medium=${for_}`)
         })
-    })
-})
+
+        describe(`special scrap handling`, () => {
+            test(`if link contains /scrap/ but is truncated, then still include the link`, () => {
+                let actual = func(item({
+                    'content:encodedSnippet': 'a'.repeat(characterLength*10),
+                    'contentSnippet': 'a'.repeat(characterLength), // used for getting the content to share
+                    'link': 'https://example.com/scrap/hello-world',
+                }))
+
+                assert.strictEqual(actual, 'a'.repeat(characterLength-linkLength-8) + '\n… more\nhttps://example.com/scrap/hello-world')
+            })
+
+            test(`if link contains /scrap/ and it's not truncated, don't include the link`, () => {
+                let actual = func(item({link: 'https://example.com/scrap/hello-world'}))
+
+                assert.strictEqual(actual, 'hello world')
+            })
+        })
+    }
+}
+
+describe('mastodon status', statusCreatorTest('mastodon', n8n.mastodon, 500, 23))
