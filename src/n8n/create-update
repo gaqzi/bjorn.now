@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -x
+../js/update_n8n_workflow.js bjorn.now-feed-distribution.json > workflow.json
+
+# For now, I'll do manual review, and when I feel it's working fine then uncomment:
+#./update-workflow workflow.json
+#rm workflow.json

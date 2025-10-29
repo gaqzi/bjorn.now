@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-21T17:22:14.815Z",
-  "updatedAt": "2025-10-29T14:45:26.447Z",
+  "updatedAt": "2025-10-29T20:18:25.010Z",
   "id": "TCuBWAGiOB1WpXVy",
   "name": "bjorn.now feed distribution",
   "active": true,
@@ -59,7 +59,7 @@
     {
       "parameters": {
         "url": "https://hachyderm.io",
-        "status": "={{ ((item) => {\n    let msg = item.json.contentSnippet,\n        msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline\n        isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,\n        truncateIndicator = '\\n… more';\n\n    let wordTruncate = (str, n, indicator) => {\n        if (indicator === undefined) indicator = '…';\n        if(str.length <= n) return str.trimEnd();\n\n        n -= indicator.length;\n        if(str[n] === ' ') return str.substring(0, n).trimEnd();\n\n        let ret = str.substring(0, n).trimEnd(),\n            i = ret.lastIndexOf(' ');\n\n        // when there are no spaces at all, just cut in the middle of the text.\n        if (i === -1) return ret.substring(0, n);\n\n        return ret.substring(0, i).trimEnd();\n    }\n\n    msg = wordTruncate(msg, msgLength, truncateIndicator);\n    let retMsg = isTruncated ? msg + truncateIndicator : msg,\n        link = item.json.link;\n\n    // Don't link to scraps when it's all contained in the post.\n    if(!isTruncated && link.includes('/scrap/')) {\n        return msg;\n    }\n\n    return retMsg + `\\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`\n})($('RSS Feed Trigger').item) }}",
+        "status": "={{ ((item) => {\n    let msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline\n        truncateIndicator = '\\n… more';\n\n    let wordTruncate = (str, n, indicator) => {\n        if (indicator === undefined) indicator = '…';\n        if(str.length <= n) return str.trimEnd();\n\n        n -= indicator.length;\n        if(str[n] === ' ') return str.substring(0, n).trimEnd();\n\n        let ret = str.substring(0, n).trimEnd(),\n            i = ret.lastIndexOf(' ');\n\n        // when there are no spaces at all, just cut in the middle of the text.\n        if (i === -1) return ret.substring(0, n);\n\n        return ret.substring(0, i).trimEnd();\n    }\n\n    let msg = wordTruncate(item.json.contentSnippet, msgLength, truncateIndicator),\n        isTruncated = msg !== item.json.contentSnippet,\n        retMsg = isTruncated ? msg + truncateIndicator : msg,\n        link = item.json.link;\n\n    // Don't link to scraps when it's all contained in the post.\n    if(!isTruncated && link.includes('/scrap/')) {\n        return msg;\n    }\n\n    return retMsg + `\\n${item.json.link.replace('utm_medium=feed', 'utm_medium=mastodon')}`\n})($('RSS Feed Trigger').item) }}",
         "additionalFields": {}
       },
       "type": "n8n-nodes-the-mastodon.mastodon",
@@ -81,10 +81,10 @@
     },
     {
       "parameters": {
-        "postText": "={{ \n((item) => {\n    let msg = item.json.contentSnippet,\n        msgLength = 300, // length of a bsky post\n        isTruncated = item.json['content:encodedSnippet'] !== item.json.contentSnippet,\n        truncateIndicator = '\\n… more';\n\n    let wordTruncate = (str, n, indicator) => {\n        if (indicator === undefined) indicator = '…';\n        if(str.length <= n) return str.trimEnd();\n\n        n -= indicator.length;\n        if(str[n] === ' ') return str.substring(0, n).trimEnd();\n\n        let ret = str.substring(0, n).trimEnd(),\n            i = ret.lastIndexOf(' ');\n\n        // when there's no spaces at all, just cut in the middle of the text.\n        if (i === -1) return ret.substring(0, n);\n\n        return ret.substring(0, i).trimEnd();\n    }\n\n    msg = wordTruncate(msg, msgLength, truncateIndicator);\n    return isTruncated ? msg + truncateIndicator : msg;\n})($('RSS Feed Trigger').item)\n}}",
+        "postText": "={{ ((item) => {\n    let msgLength = 300, // length of a bsky post\n        truncateIndicator = '\\n… more';\n\n    let wordTruncate = (str, n, indicator) => {\n        if (indicator === undefined) indicator = '…';\n        if(str.length <= n) return str.trimEnd();\n\n        n -= indicator.length;\n        if(str[n] === ' ') return str.substring(0, n).trimEnd();\n\n        let ret = str.substring(0, n).trimEnd(),\n            i = ret.lastIndexOf(' ');\n\n        // when there's no spaces at all, just cut in the middle of the text.\n        if (i === -1) return ret.substring(0, n);\n\n        return ret.substring(0, i).trimEnd();\n    }\n\n    let msg = wordTruncate(item.json.contentSnippet, msgLength, truncateIndicator),\n        isTruncated = msg !== item.json.contentSnippet;\n\n    return isTruncated ? msg + truncateIndicator : msg;\n})($('RSS Feed Trigger').item) }}",
         "websiteCard": {
           "details": {
-            "uri": "={{ $('RSS Feed Trigger').item.json.link.replace('medium=feed', 'medium=bsky') }}",
+            "uri": "={{ ((item) => {\n    let isTruncated = item.json.contentSnippet.length > 300;\n\n    return !isTruncated && item.json.link.includes('/scrap/') ? '' : item.json.link.replace('utm_medium=feed', 'utm_medium=bsky');\n})($('RSS Feed Trigger').item) }}",
             "fetchOpenGraphTags": true
           }
         }
@@ -154,7 +154,7 @@
   },
   "staticData": {
     "node:RSS Feed Trigger": {
-      "lastItemDate": "2025-10-29T08:20:57.000Z"
+      "lastItemDate": "2025-10-29T14:55:59.000Z"
     }
   },
   "meta": {
@@ -177,59 +177,6 @@
       }
     ]
   },
-  "versionId": "6f00b36f-90f8-41aa-bd73-825c2c0a21f5",
-  "triggerCount": 1,
-  "shared": [
-    {
-      "createdAt": "2025-09-21T17:22:14.823Z",
-      "updatedAt": "2025-09-21T17:22:14.823Z",
-      "role": "workflow:owner",
-      "workflowId": "TCuBWAGiOB1WpXVy",
-      "projectId": "PnKxgrRa4Ynyl6N7",
-      "project": {
-        "createdAt": "2025-09-21T17:05:27.774Z",
-        "updatedAt": "2025-09-21T17:13:07.455Z",
-        "id": "PnKxgrRa4Ynyl6N7",
-        "name": "Björn Andersson <ba@sanitarium.se>",
-        "type": "personal",
-        "icon": null,
-        "description": null,
-        "projectRelations": [
-          {
-            "createdAt": "2025-09-21T17:05:27.775Z",
-            "updatedAt": "2025-09-21T17:05:27.775Z",
-            "userId": "d8859ca6-9575-4feb-ae71-e430a1e50f7e",
-            "projectId": "PnKxgrRa4Ynyl6N7",
-            "user": {
-              "createdAt": "2025-09-21T17:05:27.259Z",
-              "updatedAt": "2025-10-29T11:04:36.000Z",
-              "id": "d8859ca6-9575-4feb-ae71-e430a1e50f7e",
-              "email": "ba@sanitarium.se",
-              "firstName": "Björn",
-              "lastName": "Andersson",
-              "personalizationAnswers": {
-                "version": "v4",
-                "personalization_survey_submitted_at": "2025-09-21T17:13:11.866Z",
-                "personalization_survey_n8n_version": "1.111.1"
-              },
-              "settings": {
-                "userActivated": true,
-                "firstSuccessfulWorkflowId": "7qfW2SIrNsld8tAB",
-                "userActivatedAt": 1758479217895,
-                "npsSurvey": {
-                  "responded": true,
-                  "lastShownAt": 1759918329420
-                }
-              },
-              "disabled": false,
-              "mfaEnabled": false,
-              "lastActiveAt": "2025-10-29",
-              "isPending": false
-            }
-          }
-        ]
-      }
-    }
-  ],
-  "tags": []
+  "versionId": "a1fac1b5-1681-4325-9070-d7d45f32ad2d",
+  "triggerCount": 1
 }

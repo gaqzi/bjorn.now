@@ -28,44 +28,73 @@ if (!workflowPath) {
     process.exit(1);
 }
 
-// Extract the mastodon function from n8n.copies.js
-const mastodonCode = fromFile(resolve(__dirname, 'n8n.copies.js'), 'mastodon');
+function extractCode(name) {
+    const code = fromFile(resolve(__dirname, 'n8n.copies.js'), name);
 
-if (!mastodonCode) {
-    console.error('Error: Could not extract mastodon function from n8n.copies.js');
-    process.exit(1);
+    if (!code) {
+        console.error(`Error: Could not extract ${name} function from n8n.copies.js`);
+        process.exit(1);
+    }
+
+    return code;
 }
+
+const mastodonCode = extractCode('mastodon'),
+    bskyCode = extractCode('bsky'),
+    bskyLinkCardCode = extractCode('bskyLinkCard');
 
 // Transform the extracted code by stripping the 'let mastodon = ' prefix
 // to get just the arrow function: (item) => { ... }
-const arrowFunction = mastodonCode.replace(/^\s*let\s+mastodon\s*=\s*/, '').trim();
+const removePrefix = /^\s*let\s+[^=]+\s*=\s*/;
+const mastodonPost = mastodonCode.replace(removePrefix, '').trim(),
+    bskyPost = bskyCode.replace(removePrefix, '').trim(),
+    bskyLinkCard = bskyLinkCardCode.replace(removePrefix, '').trim();
 
 // Wrap the arrow function in the n8n expression format
-const n8nExpression = `={{ (${arrowFunction})($('RSS Feed Trigger').item) }}`;
+const n8nExpression = `={{ (${mastodonPost})($('RSS Feed Trigger').item) }}`;
 
 // Read and parse the workflow JSON
 const workflowContent = readFileSync(workflowPath, 'utf-8');
 const workflow = JSON.parse(workflowContent);
 
 // Find and update the Mastodon node
-const mastodonNodeId = 'e1bd320b-1222-4324-9168-22372d2e667c';
-let nodeFound = false;
+const mastodonNodeId = 'e1bd320b-1222-4324-9168-22372d2e667c',
+    bskyNodeId = `73f029c7-e8a0-43b0-8bf8-e3be9a09f7d6`;
+let mastodonNodeFound = false,
+    bskyNodeFound = false;
 
 if (workflow.nodes && Array.isArray(workflow.nodes)) {
     for (const node of workflow.nodes) {
-        if (node.id === mastodonNodeId) {
-            if (!node.parameters) {
-                node.parameters = {};
-            }
-            node.parameters.status = n8nExpression;
-            nodeFound = true;
+        switch (node.id) {
+            case mastodonNodeId:
+                if (!node.parameters) {
+                    node.parameters = {};
+                }
+
+                node.parameters.status = `={{ (${mastodonPost})($('RSS Feed Trigger').item) }}`;
+
+                mastodonNodeFound = true;
+                break;
+            case bskyNodeId:
+                if (!node.parameters) {
+                    node.parameters = {};
+                }
+
+                node.parameters.postText = `={{ (${bskyPost})($('RSS Feed Trigger').item) }}`;
+                node.parameters.websiteCard.details.uri = `={{ (${bskyLinkCard})($('RSS Feed Trigger').item) }}`;
+
+                bskyNodeFound = true;
+                break
+        }
+
+        if (mastodonNodeFound && bskyNodeFound) {
             break;
         }
     }
 }
 
-if (!nodeFound) {
-    console.error(`Warning: Node with id ${mastodonNodeId} not found in workflow`);
+if (mastodonNodeFound === bskyNodeFound && mastodonNodeFound === false) {
+    console.error(`Warning: all notes not found: mastodon node found=${mastodonNodeFound} (id=${mastodonNodeId}), bsky node found = ${ bskyNodeFound} (id=${bskyNodeId})`);
 }
 
 // Output the updated JSON to stdout
