@@ -6,7 +6,7 @@
 
 /**
  *
- * @param item { json: { contentSnippet: string, content: string, 'content:encodedSnippet': string, link: string } }
+ * @param item { json: { contentSnippet: string, 'content:encodedSnippet': string, link: string } }
  * @returns {string}
  */
 let mastodon = (item) => {

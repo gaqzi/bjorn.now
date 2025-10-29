@@ -12,7 +12,6 @@ function item(overrides = {}) {
     return {
         json: Object.assign({
             contentSnippet: 'hello world',
-            content: 'hello world',
             'content:encodedSnippet': 'hello world',
             link: 'https://example.com/123' // only to force it to 23chars to make life easier for me
         }, overrides)
