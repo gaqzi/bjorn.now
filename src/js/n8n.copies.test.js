@@ -11,6 +11,7 @@ import * as n8n from './n8n.copies.js';
 function item(overrides = {}) {
     return {
         json: Object.assign({
+            content: 'hello world, and then some!',
             contentSnippet: 'hello world',
             link: 'https://example.com/123' // only to force it to 23chars to make life easier for me
         }, overrides)
@@ -127,5 +128,21 @@ describe('bsky link card attacher', () => {
 
             assert.strictEqual(actual, '')
         })
+    })
+})
+
+describe('telegram channel', () => {
+    test(`if the link does not contain /scrap/ only post the link, while changing utm_medium=feed to utm_medium=telegram`, () => {
+        let actual = n8n.telegramChannel(item({
+            'link': 'https://example.com/?utm_medium=feed'
+        }))
+
+        assert.strictEqual(actual, 'https://example.com/?utm_medium=telegram')
+    })
+
+    test(`if link contains /scrap/, then post the content and don't include the link`, () => {
+        let actual = n8n.telegramChannel(item({link: 'https://example.com/scrap/hello-world'}))
+
+        assert.strictEqual(actual, 'hello world, and then some!')
     })
 })

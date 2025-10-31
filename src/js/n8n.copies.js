@@ -80,8 +80,17 @@ let bskyLinkCard = (item) => {
 }
 //</EXTRACT:bskyLinkCard>
 
+//<EXTRACT:telegramChannel>
+let telegramChannel = (item) => {
+    let isScrap = item.json.link.includes('/scrap/');
+
+    return isScrap ? item.json.content : item.json.link.replace('utm_medium=feed', 'utm_medium=telegram');
+}
+//</EXTRACT:telegramChannel>
+
 module.exports = {
     bsky,
     bskyLinkCard,
-    mastodon
+    mastodon,
+    telegramChannel,
 }

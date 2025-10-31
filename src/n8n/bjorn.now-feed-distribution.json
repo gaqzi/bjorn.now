@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-21T17:22:14.815Z",
-  "updatedAt": "2025-10-29T20:18:25.010Z",
+  "updatedAt": "2025-10-31T13:54:11.328Z",
   "id": "TCuBWAGiOB1WpXVy",
   "name": "bjorn.now feed distribution",
   "active": true,
@@ -31,7 +31,7 @@
     {
       "parameters": {
         "chatId": "@BjornNow",
-        "text": "={{ $json.link.replace(\"medium=feed\", \"medium=telegram\") }}",
+        "text": "={{ ((item) => {\n    let isScrap = item.json.link.includes('/scrap/');\n\n    return isScrap ? item.json.content : item.json.link.replace('utm_medium=feed', 'utm_medium=telegram');\n})($('RSS Feed Trigger').item) }}",
         "additionalFields": {
           "appendAttribution": false,
           "disable_web_page_preview": false,
@@ -154,7 +154,7 @@
   },
   "staticData": {
     "node:RSS Feed Trigger": {
-      "lastItemDate": "2025-10-29T14:55:59.000Z"
+      "lastItemDate": "2025-10-29T20:32:48.000Z"
     }
   },
   "meta": {
@@ -177,6 +177,6 @@
       }
     ]
   },
-  "versionId": "a1fac1b5-1681-4325-9070-d7d45f32ad2d",
+  "versionId": "0718c936-c447-4f9d-84b1-dfba869074ea",
   "triggerCount": 1
 }
