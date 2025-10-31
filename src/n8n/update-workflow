@@ -19,6 +19,23 @@ if [ ! -s "$1" ] ; then
   exit 1
 fi
 
+# Only update the workflow if the `.versionId` ISN'T the same as the server,
+# because we're downloading the workflow and then applying our updates to it.
+# This intends to avoid overwriting anything we didn't expect.
+localVersion=$(jq -r '.versionId' "$1")
+serverVersion=$(workflow_id=$workflow_id ./get-workflow 2>/dev/null | jq -r '.versionId')
+if [ "$localVersion" != "$serverVersion" ]; then
+  echo "The local workflow file ($1) is stale to the server version" >&2
+  echo "  local version : ${localVersion}" >&2
+  echo "  server version: ${serverVersion}" >&2
+  echo >&2
+  echo "Hint: Pull down the latest version as and recreate:" >&2
+  echo "  ./get-workflow > bjorn.now-feed-distribution.json" >&2
+  echo "  ./create-update" >&2
+
+  exit 2
+fi
+
 cat $1 | jq '{
            name,
            nodes,

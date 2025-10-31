@@ -1,6 +1,6 @@
 {
   "createdAt": "2025-09-21T17:22:14.815Z",
-  "updatedAt": "2025-10-31T13:54:11.328Z",
+  "updatedAt": "2025-10-31T15:29:44.517Z",
   "id": "TCuBWAGiOB1WpXVy",
   "name": "bjorn.now feed distribution",
   "active": true,
@@ -177,6 +177,6 @@
       }
     ]
   },
-  "versionId": "0718c936-c447-4f9d-84b1-dfba869074ea",
+  "versionId": "f2fde532-d7f1-41e9-97ce-86d30e36b135",
   "triggerCount": 1
 }
