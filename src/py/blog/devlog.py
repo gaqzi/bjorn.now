@@ -282,6 +282,7 @@ def _format_choice_child(node: dict, indent_level: int = 4) -> str:
     Rules:
     - If content starts with "- ": format with "- " at current indentation
     - If content doesn't start with "- ": format without bullet at current indentation
+    - Preserve content as-is (no automatic punctuation)
     - Recursively format children with indent_level + 4
     """
     content = node.get("content", "").strip()
@@ -350,14 +351,46 @@ def _format_node(node: dict, is_choice_child: bool = False) -> str:
     for item in all_content:
         formatted_items.append(_add_punctuation(item))
 
-    # Join with blank lines between paragraphs
-    return "\n\n".join(formatted_items)
+    # Collect any choice_block children that need separate formatting
+    choice_blocks = []
+    _collect_choice_blocks(node, choice_blocks)
+
+    # Join flattened content with blank lines between paragraphs
+    result_parts = ["\n\n".join(formatted_items)]
+
+    # Add formatted choice blocks
+    for choice_block in choice_blocks:
+        formatted_choice = _format_node(choice_block)
+        if formatted_choice:
+            result_parts.append(formatted_choice)
+
+    return "\n\n".join(result_parts)
+
+
+def _collect_choice_blocks(node: dict, result: list[dict]) -> None:
+    """Recursively collect all choice_block children from a node's descendants."""
+    children = node.get("children", [])
+    for child in children:
+        if child.get("type") == "choice_block":
+            result.append(child)
+            # Don't recurse into choice block children - they're part of the block
+        else:
+            # Recursively search in non-choice-block children
+            _collect_choice_blocks(child, result)
 
 
 def _collect_all_content(node: dict, result: list[str]) -> None:
-    """Recursively collect all content from a node and its descendants."""
+    """Recursively collect all content from a node and its descendants.
+
+    Skips choice_block nodes and their descendants since they should be
+    formatted separately with their structure preserved.
+    """
     children = node.get("children", [])
     for child in children:
+        # Skip choice blocks - they should be formatted separately
+        if child.get("type") == "choice_block":
+            continue
+
         child_content = child.get("content", "").strip()
         # Remove bullet marker
         if child_content.startswith("- "):
@@ -406,6 +439,14 @@ def _add_punctuation(text: str) -> str:
     return text + "."
 
 
+def process(content: str) -> str:
+    """Process Roam Research notes into Markdown format."""
+    parsed = parse_roam_bullets(content)
+    transformed = transform_tree(parsed)
+
+    return format_tree(transformed)
+
+
 def main() -> int:
     """Main CLI entry point.
 
@@ -441,9 +482,7 @@ def main() -> int:
             content = sys.stdin.read()
 
         # Process through pipeline
-        parsed = parse_roam_bullets(content)
-        transformed = transform_tree(parsed)
-        formatted = format_tree(transformed)
+        formatted = process(content)
 
         # Output
         sys.stdout.write(formatted)

@@ -1,4 +1,4 @@
-from .devlog import format_tree, main, parse_roam_bullets, transform_tree
+from .devlog import format_tree, main, parse_roam_bullets, process, transform_tree
 
 
 class TestParseRoamBullets:
@@ -535,3 +535,61 @@ class TestMain:
             assert result == 0
         finally:
             sys.argv = old_argv
+
+
+def test_process() -> None:
+    input_text = """
+- ## Background and scope of work
+    - I will (for now) not add images to scraps until I have native support for images in my posting (so they either only exist in a special content type, which gets linked, or they're attached when posting as a scrap).
+    - I do this because I feel linking to these short-text things that really could just live on Masto/Bsky/etc. is a bit much, be a bit more native to them. Do use them to publish my other content but don't only send links when they're not necessary. It feels like being a bad citizen to them when it's only a sink that way.
+    - The way I've setup the sending in n8n right now, is that I have two steps in the status: 1) truncating the body and deciding if we need more, 2) and then adding the link, so I need to figure out a better maintenance pattern
+        - {{[[DONE]]}} [[Choice]] Manage n8n workflow with source management
+            - Constraints::
+                - Be able to recreate my n8n setup if something goes belly-up
+                - Keep as much as possible in source (but don't overdo it, I'm a single person doing this and can manage myself)
+            - Options::
+                - Keep n8n fully clickops and keep code snippets in blog
+                    - Advantages::
+                        - Super simple and what I'm doing, the status quo choice
+                    - Disadvantages::
+                        - If I have to recreate the n8n setup from scratch, painful
+                - Create the workflow file in my blog and upload it for changes
+                    - Advantages::
+                        - All my n8n stuff is in my blog, so it's easy for me to deal with, and it's something I can easily share later so that's a win for sharing
+                    - Disadvantages::
+                        - More work to figure it out right now
+                            - But probably worth it, I'll download the workflow file and look at it to see what it says
+                            - looking at the JSON file it looks pretty straightforward, and using JQ I should be able to pretty easily inject what I need into it, so I can create a small file/script to help me out here that'll be worth it I think
+            - Decision:: Create the workflow file in my blog and upload it for changes
+                - It feels like a good step towards a maintainable setup and minimal effort to get it going
+"""
+
+    assert process(input_text) == (
+        "## Background and scope of work\n"
+        "\n"
+        "I will (for now) not add images to scraps until I have native support for images in my posting (so they either only exist in a special content type, which gets linked, or they're attached when posting as a scrap).\n"
+        "\n"
+        "I do this because I feel linking to these short-text things that really could just live on Masto/Bsky/etc. is a bit much, be a bit more native to them. Do use them to publish my other content but don't only send links when they're not necessary. It feels like being a bad citizen to them when it's only a sink that way.\n"
+        "\n"
+        "The way I've setup the sending in n8n right now, is that I have two steps in the status: 1) truncating the body and deciding if we need more, 2) and then adding the link, so I need to figure out a better maintenance pattern.\n"
+        "\n"
+        "- **Choice:** Manage n8n workflow with source management\n"
+        "    - **Constraints:**\n"
+        "        - Be able to recreate my n8n setup if something goes belly-up\n"
+        "        - Keep as much as possible in source (but don't overdo it, I'm a single person doing this and can manage myself)\n"
+        "    - **Options:**\n"
+        "        - Keep n8n fully clickops and keep code snippets in blog\n"
+        "            - **Advantages:**\n"
+        "                - Super simple and what I'm doing, the status quo choice\n"
+        "            - **Disadvantages:**\n"
+        "                - If I have to recreate the n8n setup from scratch, painful\n"
+        "        - Create the workflow file in my blog and upload it for changes\n"
+        "            - **Advantages:**\n"
+        "                - All my n8n stuff is in my blog, so it's easy for me to deal with, and it's something I can easily share later so that's a win for sharing\n"
+        "            - **Disadvantages:**\n"
+        "                - More work to figure it out right now\n"
+        "                    - But probably worth it, I'll download the workflow file and look at it to see what it says\n"
+        "                    - looking at the JSON file it looks pretty straightforward, and using JQ I should be able to pretty easily inject what I need into it, so I can create a small file/script to help me out here that'll be worth it I think\n"
+        "    - **Decision:** Create the workflow file in my blog and upload it for changes\n"
+        "        - It feels like a good step towards a maintainable setup and minimal effort to get it going\n"
+    )
