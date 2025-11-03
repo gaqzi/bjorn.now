@@ -3,6 +3,7 @@
 import argparse
 import re
 import sys
+import textwrap
 
 
 def parse_roam_bullets(text: str) -> list[dict]:
@@ -20,6 +21,7 @@ def parse_roam_bullets(text: str) -> list[dict]:
 
     lines = text.split("\n")
     root_nodes = []
+    last_node = None  # Track the most recent node for continuation lines
 
     for line in lines:
         if not line.strip():
@@ -27,7 +29,24 @@ def parse_roam_bullets(text: str) -> list[dict]:
 
         # Calculate indentation level (4 spaces = 1 level)
         indent = len(line) - len(line.lstrip())
-        content = line.strip()
+
+        # Check if this line has a bullet marker
+        stripped_content = line.strip()
+        has_bullet = _has_bullet_marker(stripped_content)
+
+        # If no bullet marker, this is a continuation line
+        if not has_bullet and last_node is not None:
+            # Append to the last node's content, preserving the original line format
+            last_node["content"] += "\n" + line
+            continue
+
+        # Normalize the previous node now that it's complete
+        if last_node is not None:
+            last_node["content"] = _normalize_bullet_content(
+                last_node["content"], last_node["indent"]
+            )
+
+        content = stripped_content
 
         node = {
             "content": content,
@@ -38,13 +57,97 @@ def parse_roam_bullets(text: str) -> list[dict]:
         # Find parent and add as child
         if indent == 0:
             root_nodes.append(node)
+            last_node = node
         else:
             # Find the parent node
             parent = _find_parent(root_nodes, indent)
             if parent is not None:
                 parent["children"].append(node)
+                last_node = node
+            else:
+                # No parent found, add to root (handles indented bullets without parents)
+                root_nodes.append(node)
+                last_node = node
+
+    # Normalize the final node
+    if last_node is not None:
+        last_node["content"] = _normalize_bullet_content(
+            last_node["content"], last_node["indent"]
+        )
 
     return root_nodes
+
+
+def _has_bullet_marker(content: str) -> bool:
+    """Check if content starts with a bullet marker.
+
+    Detects:
+    - Unordered lists: starts with "- "
+    - Numbered lists: starts with number followed by ". "
+    """
+    if content.startswith("- "):
+        return True
+    # Check for numbered list (e.g., "1. ", "2. ", etc.)
+    if re.match(r"^\d+\.\s", content):
+        return True
+    return False
+
+
+def _normalize_bullet_content(content: str, bullet_indent: int) -> str:
+    """Normalize indentation in bullet content.
+
+    Dedents continuation lines by the bullet's indentation level while
+    maintaining minimum indentation equal to the bullet marker length.
+
+    Args:
+        content: The bullet content to normalize
+        bullet_indent: The indentation level of the bullet (in spaces)
+
+    Returns:
+        Normalized content with consistent indentation
+    """
+    if not content:
+        return content
+
+    # Extract the bullet marker
+    bullet_marker = None
+    if content.startswith("- "):
+        bullet_marker = "- "
+    else:
+        # Check for numbered list marker
+        match = re.match(r"^(\d+\.\s)", content)
+        if match:
+            bullet_marker = match.group(1)
+
+    if not bullet_marker:
+        return content
+
+    bullet_marker_len = len(bullet_marker)
+
+    # Split into lines
+    lines = content.split("\n")
+    if len(lines) <= 1:
+        return content  # No continuation lines, nothing to normalize
+
+    # First line is the bullet line
+    first_line = lines[0]
+    continuation_lines = lines[1:]
+
+    # Normalize each continuation line
+    normalized_lines = [first_line]
+    for line in continuation_lines:
+        if line.strip():
+            # Calculate current indentation
+            current_indent = len(line) - len(line.lstrip())
+            # Dedent by bullet indent, but maintain minimum of bullet marker length
+            new_indent = max(current_indent - bullet_indent, bullet_marker_len)
+            # Reconstruct line with new indentation
+            normalized_lines.append(" " * new_indent + line.lstrip())
+        else:
+            # Preserve empty lines
+            normalized_lines.append(line)
+
+    return "\n".join(normalized_lines)
 
 
 def _find_parent(nodes: list[dict], indent: int) -> dict | None:
@@ -169,6 +272,42 @@ def format_tree(nodes: list[dict]) -> str:
     return "\n\n".join(result) + "\n" if result else ""
 
 
+def _format_choice_child(node: dict, indent_level: int = 4) -> str:
+    """Format a child of a choice block recursively.
+
+    Args:
+        node: The node to format
+        indent_level: Current indentation level in spaces (4, 8, 12, etc.)
+
+    Rules:
+    - If content starts with "- ": format with "- " at current indentation
+    - If content doesn't start with "- ": format without bullet at current indentation
+    - Recursively format children with indent_level + 4
+    """
+    content = node.get("content", "").strip()
+    children = node.get("children", [])
+
+    # Check if content starts with "- "
+    has_bullet = content.startswith("- ")
+    if has_bullet:
+        content = content[2:]  # Remove "- " prefix
+
+    # Format current node
+    indent_str = " " * indent_level
+    if has_bullet:
+        formatted_parts = [indent_str + "- " + content]
+    else:
+        formatted_parts = [indent_str + content]
+
+    # Recursively format children
+    for child in children:
+        formatted_child = _format_choice_child(child, indent_level + 4)
+        if formatted_child:
+            formatted_parts.append(formatted_child)
+
+    return "\n".join(formatted_parts)
+
+
 def _format_node(node: dict, is_choice_child: bool = False) -> str:
     """Format a single node and its children.
 
@@ -180,37 +319,24 @@ def _format_node(node: dict, is_choice_child: bool = False) -> str:
     node_type = node.get("type")
     children = node.get("children", [])
 
-    # Remove bullet marker if present
+    # Remove bullet marker if present, by making it a space so we can dedent
     if content.startswith("- "):
-        content = content[2:]
+        content = content.replace("- ", "  ", 1)
+        content = textwrap.dedent(content)
 
     # Handle choice blocks
     if node_type == "choice_block":
         # Convert [[Choice]] to **Choice:**
         content = re.sub(r"\[\[Choice\]\]", "**Choice:**", content)
 
-        # Format the title and children
-        formatted_parts = [content]
+        # Format the title with "- " prefix
+        formatted_parts = ["- " + content]
 
-        # Format children (they are direct children of choice block)
+        # Format children with proper indentation
         for child in children:
-            formatted_child = _format_node(child, is_choice_child=True)
+            formatted_child = _format_choice_child(child, indent_level=4)
             if formatted_child:
                 formatted_parts.append(formatted_child)
-
-        return "\n\n".join(formatted_parts)
-
-    # For choice block children, preserve nested bullets
-    if is_choice_child and children:
-        formatted_parts = [content]
-
-        # Format children as nested bullets
-        for child in children:
-            child_content = child.get("content", "").strip()
-            # Remove bullet marker
-            if child_content.startswith("- "):
-                child_content = child_content[2:]
-            formatted_parts.append("- " + child_content)
 
         return "\n".join(formatted_parts)
 
@@ -235,7 +361,7 @@ def _collect_all_content(node: dict, result: list[str]) -> None:
         child_content = child.get("content", "").strip()
         # Remove bullet marker
         if child_content.startswith("- "):
-            child_content = child_content[2:]
+            child_content = textwrap.dedent(child_content.replace("- ", "  ", 1))
         if child_content:
             result.append(child_content)
         # Recursively collect from grandchildren
@@ -247,10 +373,20 @@ def _add_punctuation(text: str) -> str:
 
     Rules:
     - Don't add period if ends with: . ! ? : ) or smileys like :) :D etc.
+    - Don't add period to headers (starting with #)
+    - Don't add period to code fences (ending with ```)
     - DO add period if no punctuation at end
     """
     text = text.strip()
     if not text:
+        return text
+
+    # Don't add punctuation to headers
+    if text.startswith("#"):
+        return text
+
+    # Don't add punctuation to code fences
+    if text.endswith("```"):
         return text
 
     # Check if ends with punctuation or smiley

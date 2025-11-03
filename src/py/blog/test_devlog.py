@@ -59,6 +59,38 @@ class TestParseRoamBullets:
         ]
         assert parse_roam_bullets(input_text) == expected
 
+    def test_case_4_bullets_with_multiple_lines(self):
+        input_text = "- Hello,\n" "  World!"
+        expected = [
+            {
+                "content": "- Hello,\n" "  World!",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        assert parse_roam_bullets(input_text) == expected
+
+    def test_case_5_deindent_code_fences_but_dont_strip_all_leading_spaces(self):
+        input_text = (
+            "    - ```python\n"
+            "      def hello(s):\n"
+            "          print(f'hello, {s}')\n"
+            "  ```"
+        )
+        expected = [
+            {
+                "content": (
+                    "- ```python\n"
+                    "  def hello(s):\n"
+                    "      print(f'hello, {s}')\n"
+                    "  ```"
+                ),
+                "indent": 4,
+                "children": [],
+            }
+        ]
+        assert parse_roam_bullets(input_text) == expected
+
 
 class TestTransformTree:
     """Test cases for transform_tree function."""
@@ -173,7 +205,7 @@ class TestFormatTree:
                 "type": "choice_block",
             }
         ]
-        expected = "**Choice:** Manage workflow\n"
+        expected = "- **Choice:** Manage workflow\n"
         assert format_tree(input_nodes) == expected
 
     def test_case_10_format_choice_blocks_with_nested_bullets(self):
@@ -193,6 +225,68 @@ class TestFormatTree:
                         ],
                     },
                     {
+                        "content": "- **Options:**",
+                        "indent": 4,
+                        "children": [
+                            {
+                                "content": "- Option A",
+                                "indent": 8,
+                                "children": [
+                                    {
+                                        "content": "**Advantages:**",
+                                        "indent": 12,
+                                        "children": [
+                                            {
+                                                "content": "- Simple",
+                                                "indent": 16,
+                                                "children": [],
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        "content": "**Disadvantages:**",
+                                        "indent": 12,
+                                        "children": [
+                                            {
+                                                "content": "- Too simple?",
+                                                "indent": 16,
+                                                "children": [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                            {
+                                "content": "- Option B",
+                                "indent": 4,
+                                "children": [
+                                    {
+                                        "content": "**Advantages:**",
+                                        "indent": 12,
+                                        "children": [
+                                            {
+                                                "content": "- Covers all scenarios",
+                                                "indent": 16,
+                                                "children": [],
+                                            },
+                                        ],
+                                    },
+                                    {
+                                        "content": "**Disadvantages:**",
+                                        "indent": 12,
+                                        "children": [
+                                            {
+                                                "content": "- Hard to implement and will take a long time",
+                                                "indent": 16,
+                                                "children": [],
+                                            },
+                                        ],
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
                         "content": "- **Decision:** Go with option A",
                         "indent": 4,
                         "children": [
@@ -203,14 +297,23 @@ class TestFormatTree:
             }
         ]
         expected = (
-            "**Choice:** Title\n"
-            "\n"
-            "**Constraints:**\n"
-            "- Must work\n"
-            "- Must be fast\n"
-            "\n"
-            "**Decision:** Go with option A\n"
-            "- It feels right\n"
+            "- **Choice:** Title\n"
+            "    - **Constraints:**\n"
+            "        - Must work\n"
+            "        - Must be fast\n"
+            "    - **Options:**\n"
+            "        - Option A\n"
+            "            **Advantages:**\n"
+            "                - Simple\n"
+            "            **Disadvantages:**\n"
+            "                - Too simple?\n"
+            "        - Option B\n"
+            "            **Advantages:**\n"
+            "                - Covers all scenarios\n"
+            "            **Disadvantages:**\n"
+            "                - Hard to implement and will take a long time\n"
+            "    - **Decision:** Go with option A\n"
+            "        - It feels right\n"
         )
         assert format_tree(input_nodes) == expected
 
@@ -289,6 +392,53 @@ class TestFormatTree:
         """Test Case 13: Don't add period if ends with bold label like **Constraints:**."""
         input_nodes = [{"content": "- **Constraints:**", "indent": 0, "children": []}]
         expected = "**Constraints:**\n"
+        assert format_tree(input_nodes) == expected
+
+    def test_case_14_dont_add_punctuation_to_headers(self):
+        """Test Case 14: Don't add period to headers."""
+        input_nodes = [{"content": "# Header", "indent": 0, "children": []}]
+        expected = "# Header\n"
+        assert format_tree(input_nodes) == expected
+
+    def test_case_15_doesnt_modify_code_fences(self):
+        """Test Case 14: Don't add periods or change the content in the code fences."""
+        input_nodes = [
+            {
+                "content": "```python\n"
+                "def hello(s):\n"
+                "    print(f'hello, {s}')\n"
+                "```",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        expected = "```python\n" "def hello(s):\n" "    print(f'hello, {s}')\n" "```\n"
+        assert format_tree(input_nodes) == expected
+
+    def test_case_16_normalized_indent_on_multi_line_when_leading_bullet_is_stripped(
+        self,
+    ):
+        """Test Case 16: Indentation should be normalized on multi-line bullets."""
+        input_nodes = [
+            {
+                "content": ("- First line,\n" "  that is continued"),
+                "indent": 0,
+                "children": [
+                    {
+                        "content": ("- Second, indented line,\n" "  that is continued"),
+                        "indent": 4,
+                        "children": [],
+                    }
+                ],
+            }
+        ]
+        expected = (
+            "First line,\n"
+            "that is continued.\n"
+            "\n"
+            "Second, indented line,\n"
+            "that is continued.\n"
+        )
         assert format_tree(input_nodes) == expected
 
 
