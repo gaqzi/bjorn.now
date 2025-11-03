@@ -25,13 +25,16 @@ describe('mastodon status', () => {
         assert.strictEqual(actual, 'hello world\nhttps://example.com/123')
     })
 
-    test(`is post is more than 500 chars then add "…more" and truncate to a total of 476 chars`, () => {
+    test(`is post is more than 500 chars then add "…more" and truncate to a total of 475 chars`, () => {
+        // Why 475 and 499 when the limit is actually 500? Because n8n is adding an extra space before my link,
+        // and I can't explain why. It doesn't happen here when testing and whatever on one character.
+        // I'll just remove it and try again.
         let actual = n8n.mastodon(item({
             'contentSnippet': 'a'.repeat(500) // used for getting the content to share
         }))
 
-        assert.strictEqual(actual, 'a'.repeat('469') + '\n… more\nhttps://example.com/123')
-        assert.strictEqual(actual.length, 500)
+        assert.strictEqual(actual, 'a'.repeat('468') + '\n… more\nhttps://example.com/123')
+        assert.strictEqual(actual.length, 499)
     })
 
     test(`if the link has utm_medium=feed then change it to utm_medium=mastodon`, () => {

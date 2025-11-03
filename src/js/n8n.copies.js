@@ -1,9 +1,3 @@
-/* Poor man's version control: I don't feel like doing an n8n package yet,
- * so let's start by making some easy to copy/paste things that I can keep in here instead.
- *
- *
- */
-
 /**
  *
  * @param item { json: { contentSnippet: string, 'content:encodedSnippet': string, link: string } }
@@ -11,7 +5,7 @@
  */
 //<EXTRACT:mastodon>
 let mastodon = (item) => {
-    let msgLength = 500-23-1, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline
+    let msgLength = 500-23-2, // the default mastodon post size is 500, -23 chars for the link, and -1 char for newline, and -1 for an extra space I can't account for
         truncateIndicator = '\n… more';
 
     let wordTruncate = (str, n, indicator) => {
