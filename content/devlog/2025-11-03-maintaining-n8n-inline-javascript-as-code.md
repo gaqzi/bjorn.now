@@ -10,7 +10,7 @@ tags:
 daily: ['2025-11-03']
 series: []
 ---
-In this devlog I'll make a change in my N8N POSSE setup,
+In this devlog I'll make a change in my n8n POSSE setup,
 that could've taken ~an hour if I kept doing it manually as I had,
 but instead I spent ~5 hours tidying and removing manual steps for the future.
 
