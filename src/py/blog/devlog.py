@@ -516,6 +516,75 @@ def _format_preserve_list_children(children: list[Node], indent_level: int = 0) 
     return "\n".join(formatted_lines)
 
 
+def _format_multiline_choice_content(
+    lines: list[str], has_bullet: bool, indent_level: int
+) -> str:
+    """Format multi-line content for choice blocks with proper indentation.
+
+    Handles indentation of content that spans multiple lines (e.g., code blocks),
+    preserving relative indentation within the content while aligning with the
+    block's structure.
+
+    Args:
+        lines: The content lines to format (first line is the main content)
+        has_bullet: Whether the first line should have a bullet marker ("- ")
+        indent_level: Current indentation level in spaces (4, 8, 12, etc.)
+
+    Returns:
+        Formatted multi-line content as a single string with embedded newlines
+
+    Indentation Rules:
+        - First line gets indent_level (plus "- " if has_bullet)
+        - If has_bullet: continuation lines get indent_level + 2
+        - If no bullet: continuation lines get indent_level
+        - Relative indentation within the content is preserved (e.g., code blocks)
+        - Empty lines are preserved as-is
+    """
+    indent_str = " " * indent_level
+    formatted_lines = []
+
+    # Format first line with optional bullet marker
+    if has_bullet:
+        formatted_lines.append(indent_str + "- " + lines[0])
+        # When there's a bullet, continuation lines align 2 spaces after the "- "
+        continuation_indent = indent_level + 2
+    else:
+        formatted_lines.append(indent_str + lines[0])
+        # When there's no bullet, continuation lines use the same indentation
+        continuation_indent = indent_level
+
+    # Find minimum indentation in continuation lines to preserve relative indentation.
+    # This is critical for code blocks where relative indentation conveys structure.
+    continuation_lines = lines[1:]
+    leftmost_indent_in_content = None
+    for line in continuation_lines:
+        if line.strip():  # Only consider non-empty lines
+            current_indent = len(line) - len(line.lstrip())
+            if (
+                leftmost_indent_in_content is None
+                or current_indent < leftmost_indent_in_content
+            ):
+                leftmost_indent_in_content = current_indent
+
+    # Format continuation lines, preserving their relative indentation
+    for line in continuation_lines:
+        stripped = line.lstrip()
+        if stripped:
+            # Calculate original indentation and preserve relative offset
+            original_indent = len(line) - len(stripped)
+            # relative_indent is the offset from the leftmost line
+            # (e.g., if leftmost has 4 spaces and this line has 8, relative_indent is 4)
+            relative_indent = original_indent - (leftmost_indent_in_content or 0)
+            formatted_lines.append(
+                " " * (continuation_indent + relative_indent) + stripped
+            )
+        else:
+            # Preserve empty lines exactly as they are
+            formatted_lines.append(line)
+
+    return "\n".join(formatted_lines)
+
+
 def _format_choice_child(node: Node, indent_level: int = 4) -> str:
     """Format a child of a choice block recursively.
 
@@ -541,42 +610,11 @@ def _format_choice_child(node: Node, indent_level: int = 4) -> str:
     # Handle multi-line content (e.g., content with code blocks)
     if "\n" in content:
         lines = content.split("\n")
-        indent_str = " " * indent_level
-        # First line gets the bullet if present
-        if has_bullet:
-            formatted_lines = [indent_str + "- " + lines[0]]
-            # When there's a bullet, continuation lines get indented at indent_level + 2
-            continuation_indent_base = indent_level + 2
-        else:
-            formatted_lines = [indent_str + lines[0]]
-            # When there's no bullet, continuation lines get the same indent as the first line
-            continuation_indent_base = indent_level
-
-        # Find minimum indentation in continuation lines to preserve relative indentation
-        continuation_lines = lines[1:]
-        min_indent = None
-        for line in continuation_lines:
-            if line.strip():  # Only consider non-empty lines
-                current_indent = len(line) - len(line.lstrip())
-                if min_indent is None or current_indent < min_indent:
-                    min_indent = current_indent
-
-        for line in continuation_lines:
-            stripped = line.lstrip()
-            if stripped:
-                # Calculate how much indentation the original line had
-                original_indent = len(line) - len(stripped)
-                # Preserve relative indentation within code blocks
-                # relative_indent is the difference from the minimum
-                relative_indent = original_indent - (min_indent or 0)
-                formatted_lines.append(
-                    " " * (continuation_indent_base + relative_indent) + stripped
-                )
-            else:
-                # Preserve empty lines
-                formatted_lines.append(line)
-
-        formatted_parts = ["\n".join(formatted_lines)]
+        # Extract and format the multi-line content with proper indentation
+        formatted_content = _format_multiline_choice_content(
+            lines, has_bullet, indent_level
+        )
+        formatted_parts = [formatted_content]
     else:
         # Single-line content
         indent_str = " " * indent_level
