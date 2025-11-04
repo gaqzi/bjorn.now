@@ -1,5 +1,6 @@
 from .devlog import (
     ChoiceNode,
+    CodeFenceNode,
     DetailsNode,
     NumberedListNode,
     PreserveListNode,
@@ -313,11 +314,11 @@ code here
             content="- LLM plan to review:",
             indent=0,
             children=[
-                {
-                    "content": "```text\nplan content\n```",
-                    "indent": 4,
-                    "children": [],
-                }
+                CodeFenceNode(
+                    content="```text\nplan content\n```",
+                    indent=4,
+                    children=[],
+                )
             ],
         )
         assert result[0] == expected
@@ -595,14 +596,14 @@ class TestFormatTree:
     def test_case_15_doesnt_modify_code_fences(self):
         """Test Case 14: Don't add periods or change the content in the code fences."""
         input_nodes = [
-            {
-                "content": "```python\n"
+            CodeFenceNode(
+                content="```python\n"
                 "def hello(s):\n"
                 "    print(f'hello, {s}')\n"
                 "```",
-                "indent": 0,
-                "children": [],
-            }
+                indent=0,
+                children=[],
+            )
         ]
         expected = "```python\n" "def hello(s):\n" "    print(f'hello, {s}')\n" "```\n"
         assert format_tree(input_nodes) == expected
@@ -795,11 +796,11 @@ class TestFormatTree:
                         "content": "- **Options:**",
                         "indent": 4,
                         "children": [
-                            {
-                                "content": "- Option A\n  ```python\n  def hello():\n      print('hi')\n  ```",
-                                "indent": 8,
-                                "children": [],
-                            }
+                            CodeFenceNode(
+                                content="- Option A\n  ```python\n  def hello():\n      print('hi')\n  ```",
+                                indent=8,
+                                children=[],
+                            )
                         ],
                     }
                 ],
@@ -824,16 +825,16 @@ class TestFormatTree:
                 "indent": 0,
                 "type": "choice_block",
                 "children": [
-                    {
-                        "content": (
+                    CodeFenceNode(
+                        content=(
                             "```plaintext\n"
                             "def hello(s):\n"
                             "    print(f'hello, {s}')\n"
                             "```"
                         ),
-                        "indent": 4,
-                        "children": [],
-                    }
+                        indent=4,
+                        children=[],
+                    )
                 ],
             }
         ]
@@ -858,11 +859,11 @@ class TestFormatTree:
                         "content": "- Level 1",
                         "indent": 4,
                         "children": [
-                            {
-                                "content": "- Level 2\n  ```python\n  code\n  ```",
-                                "indent": 8,
-                                "children": [],
-                            }
+                            CodeFenceNode(
+                                content="- Level 2\n  ```python\n  code\n  ```",
+                                indent=8,
+                                children=[],
+                            )
                         ],
                     }
                 ],
@@ -1014,11 +1015,11 @@ class TestFormatTree:
                 "content": "- Implementation plan:",
                 "indent": 0,
                 "children": [
-                    {
-                        "content": "```python\ndef hello():\n    print('hi')\n```",
-                        "indent": 4,
-                        "children": [],
-                    }
+                    CodeFenceNode(
+                        content="```python\ndef hello():\n    print('hi')\n```",
+                        indent=4,
+                        children=[],
+                    )
                 ],
                 "details_block": True,
             }
@@ -1043,7 +1044,9 @@ class TestFormatTree:
                 "indent": 0,
                 "children": [
                     {"content": "- Regular text", "indent": 4, "children": []},
-                    {"content": "```python\ncode\n```", "indent": 4, "children": []},
+                    CodeFenceNode(
+                        content="```python\ncode\n```", indent=4, children=[]
+                    ),
                     {"content": "- More text", "indent": 4, "children": []},
                 ],
                 "details_block": True,
