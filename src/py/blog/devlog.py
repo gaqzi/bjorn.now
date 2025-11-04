@@ -111,20 +111,7 @@ class ChoiceNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return ChoiceNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -154,7 +141,7 @@ class ChoiceNode(Node):
         """Format a child of a choice block recursively.
 
         Args:
-            node: The node to format (can be Node object or dict)
+            node: The node to format (Node object)
             indent_level: Current indentation level in spaces (4, 8, 12, etc.)
 
         Rules:
@@ -164,13 +151,8 @@ class ChoiceNode(Node):
         - For multi-line content with code blocks: indent continuation lines at indent_level + 2
         - Recursively format children with indent_level + 4
         """
-        # Handle both Node objects and dicts
-        if is_node_object(node):
-            content = node.content.strip()
-            children = node.children
-        else:
-            content = node.get("content", "").strip()
-            children = node.get("children", [])
+        content = node.content.strip()
+        children = node.children
 
         # Check if content starts with "- "
         has_bullet = content.startswith("- ")
@@ -281,20 +263,7 @@ class DetailsNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return DetailsNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -353,20 +322,7 @@ class NumberedListNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return NumberedListNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -407,20 +363,7 @@ class QuoteNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return QuoteNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -469,20 +412,7 @@ class CodeFenceNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return CodeFenceNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -511,20 +441,7 @@ class PreserveListNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return PreserveListNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -561,7 +478,7 @@ class PreserveListNode(Node):
         """Format children of a preserve_list node as indented bullets.
 
         Args:
-            children: The child nodes to format (can be Node objects or dicts)
+            children: The child nodes to format (Node objects)
             indent_level: Current indentation level in spaces (0, 4, 8, etc.)
 
         Returns:
@@ -570,14 +487,9 @@ class PreserveListNode(Node):
         formatted_lines = []
 
         for child in children:
-            if is_node_object(child):
-                content = child.content.strip()
-                child_children = child.children
-                preserve_list_child = isinstance(child, PreserveListNode)
-            else:
-                content = child.get("content", "").strip()
-                child_children = child.get("children", [])
-                preserve_list_child = child.get("preserve_list", False)
+            content = child.content.strip()
+            child_children = child.children
+            preserve_list_child = isinstance(child, PreserveListNode)
 
             # Remove bullet marker
             if content.startswith("- "):
@@ -600,10 +512,7 @@ class PreserveListNode(Node):
             elif child_children:
                 # Non-preserve_list children should be flattened
                 for grandchild in child_children:
-                    if is_node_object(grandchild):
-                        grandchild_content = grandchild.content.strip()
-                    else:
-                        grandchild_content = grandchild.get("content", "").strip()
+                    grandchild_content = grandchild.content.strip()
                     if grandchild_content.startswith("- "):
                         grandchild_content = grandchild_content[2:]
                     indent_str_child = " " * (indent_level + 4)
@@ -623,20 +532,7 @@ class RegularNode(Node):
     def modify(self, fn):
         """Apply function to content and recurse to children."""
         modified_content = fn(self.content)
-        modified_children = []
-        for child in self.children:
-            if is_node_object(child):
-                modified_children.append(child.modify(fn))
-            else:
-                # Handle dict children
-                modified_child = dict(child)
-                modified_child["content"] = fn(child.get("content", ""))
-                if child.get("children"):
-                    modified_child["children"] = [
-                        c.modify(fn) if is_node_object(c) else c
-                        for c in child["children"]
-                    ]
-                modified_children.append(modified_child)
+        modified_children = [child.modify(fn) for child in self.children]
         return RegularNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
@@ -672,10 +568,8 @@ class RegularNode(Node):
                 if joined:
                     result_parts.append(joined)
             else:
-                # Check if child is a choice block (Node object or dict with type)
-                is_choice = (
-                    is_node_object(child) and isinstance(child, ChoiceNode)
-                ) or (not is_node_object(child) and child.get("type") == "choice_block")
+                # Check if child is a choice block
+                is_choice = isinstance(child, ChoiceNode)
                 if is_choice:
                     # Format choice block and add it
                     formatted_child = _format_node(child)
@@ -692,13 +586,16 @@ class RegularNode(Node):
 
 
 def is_node_object(obj) -> bool:
-    """Check if an object is a Node instance (not a dict).
+    """Check if an object is a Node instance.
 
     Args:
         obj: The object to check
 
     Returns:
         True if obj is a Node instance, False otherwise
+
+    Note: This function is kept for backwards compatibility but is no longer
+    needed internally since all nodes are now Node objects.
     """
     return isinstance(obj, Node)
 
@@ -974,7 +871,7 @@ def _find_parent(nodes: list[NodeDict], indent: int) -> NodeDict | None:
     return search_last_node(nodes)
 
 
-def transform_tree(nodes: list[NodeDict]) -> list[NodeDict | Node]:
+def transform_tree(nodes: list[NodeDict]) -> list[Node]:
     """Transform tree by removing markers, filtering nodes, etc.
 
     Transformations:
@@ -1103,7 +1000,7 @@ def _convert_double_colon_labels(content: str) -> str:
 
 
 def _collect_and_format_numbered_items(
-    nodes: list[NodeDict | Node], start_index: int
+    nodes: list[Node], start_index: int
 ) -> tuple[str, int]:
     """Collect and format consecutive numbered list items.
 
@@ -1137,7 +1034,7 @@ def _collect_and_format_numbered_items(
     return joined, i
 
 
-def format_tree(nodes: list[NodeDict | Node]) -> str:
+def format_tree(nodes: list[Node]) -> str:
     """Format tree into final markdown output.
 
     Rules:
@@ -1169,16 +1066,13 @@ def format_tree(nodes: list[NodeDict | Node]) -> str:
     return "\n\n".join(result) + "\n" if result else ""
 
 
-def _is_numbered_list_item(node: NodeDict | Node) -> bool:
+def _is_numbered_list_item(node: Node) -> bool:
     """Check if a node is a numbered list item (starts with digit followed by period)."""
-    if is_node_object(node):
-        content = node.content.strip()
-    else:
-        content = node.get("content", "").strip()
+    content = node.content.strip()
     return bool(re.match(r"^\d+\.\s", content))
 
 
-def _format_numbered_list_item(node: NodeDict | Node) -> str:
+def _format_numbered_list_item(node: Node) -> str:
     """Format a numbered list item with its children.
 
     Numbered list items should:
@@ -1186,12 +1080,8 @@ def _format_numbered_list_item(node: NodeDict | Node) -> str:
     - Children should be formatted and flattened
     - Return the item with newline(s) at the end for joining
     """
-    if is_node_object(node):
-        content = node.content.strip()
-        children = node.children
-    else:
-        content = node.get("content", "").strip()
-        children = node.get("children", [])
+    content = node.content.strip()
+    children = node.children
 
     # Numbered items are preserved as-is, no punctuation added
     # Format and flatten children
@@ -1210,322 +1100,16 @@ def _format_numbered_list_item(node: NodeDict | Node) -> str:
         return content + "\n"
 
 
-def _format_quote_block(content: str) -> str:
-    """Format a quote block by preserving > prefixes on each line.
+def _format_node(node: Node) -> str:
+    """Format a single node using its __str__ method.
 
     Args:
-        content: The content starting with "- > " or multi-line quote
+        node: The node to format (Node object)
 
     Returns:
-        The formatted quote block with > prefix on each line, without trailing newline
+        Formatted string representation of the node
     """
-    # Remove the leading "- " bullet marker
-    if content.startswith("- "):
-        content = content[2:]
-
-    # Split into lines
-    lines = content.split("\n")
-    formatted_lines = []
-
-    for line in lines:
-        # Remove leading/trailing whitespace to normalize
-        stripped = line.strip()
-        if stripped:
-            # If line already starts with "> ", keep it; otherwise add it
-            if not stripped.startswith("> "):
-                formatted_lines.append("> " + stripped)
-            else:
-                formatted_lines.append(stripped)
-        else:
-            # Preserve empty lines if needed (though unlikely in quotes)
-            formatted_lines.append(line)
-
-    return "\n".join(formatted_lines)
-
-
-def _format_preserve_list_children(
-    children: list[NodeDict | Node], indent_level: int = 0
-) -> str:
-    """Format children of a preserve_list node as indented bullets.
-
-    Args:
-        children: The child nodes to format
-        indent_level: Current indentation level in spaces (0, 4, 8, etc.)
-
-    Returns:
-        Formatted children as indented bullets, without trailing newline
-    """
-    formatted_lines = []
-
-    for child in children:
-        if is_node_object(child):
-            content = child.content.strip()
-            child_children = child.children
-            preserve_list_child = (
-                False  # Node objects don't have preserve_list flag yet
-            )
-        else:
-            content = child.get("content", "").strip()
-            child_children = child.get("children", [])
-            preserve_list_child = child.get("preserve_list", False)
-
-        # Remove bullet marker
-        if content.startswith("- "):
-            content = content[2:]
-
-        # Create indentation
-        indent_str = " " * indent_level
-
-        # Add current node as bullet
-        formatted_lines.append(indent_str + "- " + content)
-
-        # Handle children
-        if preserve_list_child and child_children:
-            # Recursively format preserve_list children with more indentation
-            child_formatted = _format_preserve_list_children(
-                child_children, indent_level + 4
-            )
-            if child_formatted:
-                formatted_lines.append(child_formatted)
-        elif child_children:
-            # Non-preserve_list children should be flattened
-            for grandchild in child_children:
-                grandchild_content = grandchild.get("content", "").strip()
-                if grandchild_content.startswith("- "):
-                    grandchild_content = grandchild_content[2:]
-                indent_str_child = " " * (indent_level + 4)
-                formatted_lines.append(indent_str_child + "- " + grandchild_content)
-
-    return "\n".join(formatted_lines)
-
-
-def _format_quote_node(node: NodeDict | Node) -> str:
-    """Format a quote block node.
-
-    Args:
-        node: A node with content starting with "- > "
-
-    Returns:
-        Formatted quote block with > prefix on each line
-    """
-    if is_node_object(node):
-        content = node.content.strip()
-    else:
-        content = node.get("content", "").strip()
-    # Format the quote block (removes bullet marker internally)
-    return _format_quote_block(content)
-
-
-def _format_choice_node(node: NodeDict | Node) -> str:
-    """Format a choice block node (fallback for dict-based nodes).
-
-    Args:
-        node: A node with type == "choice_block"
-
-    Returns:
-        Formatted choice block with nested structure preserved
-
-    Note: This should not be called for ChoiceNode objects, as they use __str__()
-    """
-    # This should only be called for dict nodes
-    # ChoiceNode objects are handled by _format_node's is_node_object check
-    if is_node_object(node):
-        return str(node)
-
-    # Create a temporary ChoiceNode to handle formatting
-    temp_node = ChoiceNode(
-        content=node.get("content", ""),
-        indent=node.get("indent", 0),
-        children=node.get("children", []),
-    )
-    return str(temp_node)
-
-
-def _format_preserve_list_node(node: NodeDict | Node) -> str:
-    """Format a node with preserve_list flag.
-
-    Args:
-        node: A node with preserve_list == True
-
-    Returns:
-        Formatted node with children preserved as indented bullets
-    """
-    if is_node_object(node):
-        content = node.content.strip()
-        children = node.children
-    else:
-        content = node.get("content", "").strip()
-        children = node.get("children", [])
-
-    # Remove bullet marker if present
-    if content.startswith("- "):
-        content = content.replace("- ", "  ", 1)
-        content = textwrap.dedent(content)
-
-    # Format parent content: ensure it ends with a colon (no period)
-    if not content.endswith(":"):
-        parent_formatted = content + ":"
-    else:
-        parent_formatted = content
-
-    # Format children as indented bullets
-    formatted_children = _format_preserve_list_children(children, indent_level=0)
-
-    if formatted_children:
-        return parent_formatted + "\n\n" + formatted_children
-    else:
-        return parent_formatted
-
-
-def _format_details_node(node: NodeDict | Node) -> str:
-    """Format a node with details_block flag as HTML details/summary.
-
-    Args:
-        node: A node with details_block == True
-
-    Returns:
-        Formatted HTML details block with summary and flattened children
-    """
-    if is_node_object(node):
-        content = node.content.strip()
-        children = node.children
-    else:
-        content = node.get("content", "").strip()
-        children = node.get("children", [])
-
-    # Remove bullet marker if present
-    if content.startswith("- "):
-        content = content.replace("- ", "  ", 1)
-        content = textwrap.dedent(content)
-
-    # Split content into first line (summary) and continuation lines
-    lines = content.split("\n", 1)
-    summary_content = lines[0].strip()
-    continuation_content = lines[1] if len(lines) > 1 else ""
-
-    # Format children - flatten them like regular bullets
-    child_parts = []
-
-    # First, add any continuation lines from the content itself
-    if continuation_content.strip():
-        # Process continuation lines as if they were child content
-        # Strip leading indentation and format them
-        continuation_lines = continuation_content.split("\n")
-        continuation_text = "\n".join(continuation_lines).strip()
-        # Don't add punctuation for code blocks or already formatted content
-        if not continuation_text.startswith("```"):
-            continuation_text = _add_punctuation(continuation_text)
-        child_parts.append(continuation_text)
-
-    # Then add actual child nodes
-    for child in children:
-        formatted_child = _format_node(child)
-        if formatted_child:
-            child_parts.append(formatted_child)
-
-    # Build the details block
-    if child_parts:
-        # Join children with blank lines (double newline separation)
-        children_formatted = "\n\n".join(child_parts)
-        # Structure: <details>\n<summary>content</summary>\n\nchildren\n</details>
-        return f"<details>\n<summary>{summary_content}</summary>\n\n{children_formatted}\n</details>"
-    else:
-        # No children case
-        return f"<details>\n<summary>{summary_content}</summary>\n</details>"
-
-
-def _format_regular_node(node: NodeDict | Node) -> str:
-    """Format a regular bullet node with flattening.
-
-    Args:
-        node: A node without special type or preserve_list flag
-
-    Returns:
-        Formatted node with children flattened and punctuation added
-    """
-    if is_node_object(node):
-        content = node.content.strip()
-        children = node.children
-    else:
-        content = node.get("content", "").strip()
-        children = node.get("children", [])
-
-    # Remove bullet marker if present, by making it a space so we can dedent
-    if content.startswith("- "):
-        content = content.replace("- ", "  ", 1)
-        content = textwrap.dedent(content)
-
-    # For regular bullets, process children in order maintaining sequence
-    # This includes regular content that gets flattened and choice blocks inline
-    result_parts = []
-
-    # Add punctuation to root content if present
-    if content:
-        result_parts.append(_add_punctuation(content))
-
-    # Process children, detecting consecutive numbered list items
-    i = 0
-    while i < len(children):
-        child = children[i]
-
-        # Check if this starts a sequence of numbered list items
-        if _is_numbered_list_item(child):
-            # Collect consecutive numbered list items
-            joined, i = _collect_and_format_numbered_items(children, i)
-            if joined:
-                result_parts.append(joined)
-        else:
-            # Check if child is a choice block (Node object or dict with type)
-            is_choice = (is_node_object(child) and isinstance(child, ChoiceNode)) or (
-                not is_node_object(child) and child.get("type") == "choice_block"
-            )
-            if is_choice:
-                # Format choice block and add it
-                formatted_child = _format_node(child)
-                if formatted_child:
-                    result_parts.append(formatted_child)
-            else:
-                # Format non-choice children and flatten their content
-                formatted_child = _format_node(child)
-                if formatted_child:
-                    result_parts.append(formatted_child)
-            i += 1
-
-    return "\n\n".join(result_parts)
-
-
-def _format_node(node: NodeDict | Node, is_choice_child: bool = False) -> str:
-    """Format a single node by dispatching to type-specific handlers.
-
-    Args:
-        node: The node to format
-        is_choice_child: True if this node is a child of a choice block (unused, kept for compatibility)
-
-    Dispatches to:
-    - Node.__str__(): For Node objects (uses their own formatting)
-    - _format_quote_node: For quote blocks (content starts with "- > ")
-    - _format_choice_node: For choice blocks (type == "choice_block")
-    - _format_preserve_list_node: For nodes with preserve_list flag
-    - _format_details_node: For details blocks (details_block == True)
-    - _format_regular_node: For regular bullets with flattening
-    """
-    # Check if this is a Node object first
-    if is_node_object(node):
-        return str(node)
-
-    # Handle dict-based nodes
-    content = node.get("content", "").strip()
-
-    # Dispatch to appropriate handler based on node type
-    if content.startswith("- > "):
-        return _format_quote_node(node)
-    if node.get("type") == "choice_block":
-        return _format_choice_node(node)
-    if node.get("preserve_list"):
-        return _format_preserve_list_node(node)
-    if node.get("details_block"):
-        return _format_details_node(node)
-    return _format_regular_node(node)
+    return str(node)
 
 
 def _add_punctuation(text: str) -> str:
