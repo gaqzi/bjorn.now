@@ -4,9 +4,28 @@ import argparse
 import re
 import sys
 import textwrap
+from typing import NotRequired, TypedDict
 
 
-def parse_roam_bullets(text: str) -> list[dict]:
+class Node(TypedDict):
+    """Represents a node in the parsed tree structure.
+
+    Fields:
+        content: The text content of the node (bullet marker may be included)
+        indent: Indentation level in spaces (0, 4, 8, etc.)
+        children: List of child nodes
+        type: Optional node type marker (e.g., "choice_block")
+        preserve_list: Optional flag to preserve list structure instead of flattening
+    """
+
+    content: str
+    indent: int
+    children: list["Node"]
+    type: NotRequired[str]
+    preserve_list: NotRequired[bool]
+
+
+def parse_roam_bullets(text: str) -> list[Node]:
     """Parse Roam-style indented bullets into tree structure.
 
     Returns list of nodes where each node is:
@@ -150,7 +169,7 @@ def _normalize_bullet_content(content: str, bullet_indent: int) -> str:
     return "\n".join(normalized_lines)
 
 
-def _find_parent(nodes: list[dict], indent: int) -> dict | None:
+def _find_parent(nodes: list[Node], indent: int) -> Node | None:
     """Find the closest parent node with smaller indentation."""
     # Start from the end and traverse depth-first
     if not nodes:
@@ -178,7 +197,7 @@ def _find_parent(nodes: list[dict], indent: int) -> dict | None:
     return search_last_node(nodes)
 
 
-def transform_tree(nodes: list[dict]) -> list[dict]:
+def transform_tree(nodes: list[Node]) -> list[Node]:
     """Transform tree by removing markers, filtering nodes, etc.
 
     Transformations:
@@ -239,7 +258,7 @@ def transform_tree(nodes: list[dict]) -> list[dict]:
     return result
 
 
-def _is_meta_node(node: dict) -> bool:
+def _is_meta_node(node: Node) -> bool:
     """Check if a node is a #meta node."""
     content = node.get("content", "")
     # Check if the content contains #meta as a word
@@ -281,7 +300,7 @@ def _convert_double_colon_labels(content: str) -> str:
 
 
 def _collect_and_format_numbered_items(
-    nodes: list[dict], start_index: int
+    nodes: list[Node], start_index: int
 ) -> tuple[str, int]:
     """Collect and format consecutive numbered list items.
 
@@ -315,7 +334,7 @@ def _collect_and_format_numbered_items(
     return joined, i
 
 
-def format_tree(nodes: list[dict]) -> str:
+def format_tree(nodes: list[Node]) -> str:
     """Format tree into final markdown output.
 
     Rules:
@@ -347,13 +366,13 @@ def format_tree(nodes: list[dict]) -> str:
     return "\n\n".join(result) + "\n" if result else ""
 
 
-def _is_numbered_list_item(node: dict) -> bool:
+def _is_numbered_list_item(node: Node) -> bool:
     """Check if a node is a numbered list item (starts with digit followed by period)."""
     content = node.get("content", "").strip()
     return bool(re.match(r"^\d+\.\s", content))
 
 
-def _format_numbered_list_item(node: dict) -> str:
+def _format_numbered_list_item(node: Node) -> str:
     """Format a numbered list item with its children.
 
     Numbered list items should:
@@ -414,7 +433,7 @@ def _format_quote_block(content: str) -> str:
     return "\n".join(formatted_lines)
 
 
-def _format_preserve_list_children(children: list[dict], indent_level: int = 0) -> str:
+def _format_preserve_list_children(children: list[Node], indent_level: int = 0) -> str:
     """Format children of a preserve_list node as indented bullets.
 
     Args:
@@ -461,7 +480,7 @@ def _format_preserve_list_children(children: list[dict], indent_level: int = 0) 
     return "\n".join(formatted_lines)
 
 
-def _format_choice_child(node: dict, indent_level: int = 4) -> str:
+def _format_choice_child(node: Node, indent_level: int = 4) -> str:
     """Format a child of a choice block recursively.
 
     Args:
@@ -539,7 +558,7 @@ def _format_choice_child(node: dict, indent_level: int = 4) -> str:
     return "\n".join(formatted_parts)
 
 
-def _format_node(node: dict, is_choice_child: bool = False) -> str:
+def _format_node(node: Node, is_choice_child: bool = False) -> str:
     """Format a single node and its children.
 
     Args:
