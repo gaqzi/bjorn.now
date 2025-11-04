@@ -270,6 +270,78 @@ class ChoiceNode(Node):
         return "\n".join(formatted_lines)
 
 
+class DetailsNode(Node):
+    """Node representing a details block with [details] marker."""
+
+    @classmethod
+    def matches(cls, content: str, **flags) -> bool:
+        """Match nodes with details_block == True."""
+        return flags.get("details_block") == True
+
+    def modify(self, fn):
+        """Apply function to content and recurse to children."""
+        modified_content = fn(self.content)
+        modified_children = []
+        for child in self.children:
+            if is_node_object(child):
+                modified_children.append(child.modify(fn))
+            else:
+                # Handle dict children
+                modified_child = dict(child)
+                modified_child["content"] = fn(child.get("content", ""))
+                if child.get("children"):
+                    modified_child["children"] = [
+                        c.modify(fn) if is_node_object(c) else c
+                        for c in child["children"]
+                    ]
+                modified_children.append(modified_child)
+        return DetailsNode(modified_content, self.indent, modified_children)
+
+    def __str__(self) -> str:
+        """Format details block as HTML details/summary."""
+        content = self.content.strip()
+
+        # Remove bullet marker if present
+        if content.startswith("- "):
+            content = content.replace("- ", "  ", 1)
+            content = textwrap.dedent(content)
+
+        # Split content into first line (summary) and continuation lines
+        lines = content.split("\n", 1)
+        summary_content = lines[0].strip()
+        continuation_content = lines[1] if len(lines) > 1 else ""
+
+        # Format children - flatten them like regular bullets
+        child_parts = []
+
+        # First, add any continuation lines from the content itself
+        if continuation_content.strip():
+            # Process continuation lines as if they were child content
+            # Strip leading indentation and format them
+            continuation_lines = continuation_content.split("\n")
+            continuation_text = "\n".join(continuation_lines).strip()
+            # Don't add punctuation for code blocks or already formatted content
+            if not continuation_text.startswith("```"):
+                continuation_text = _add_punctuation(continuation_text)
+            child_parts.append(continuation_text)
+
+        # Then add actual child nodes
+        for child in self.children:
+            formatted_child = _format_node(child)
+            if formatted_child:
+                child_parts.append(formatted_child)
+
+        # Build the details block
+        if child_parts:
+            # Join children with blank lines (double newline separation)
+            children_formatted = "\n\n".join(child_parts)
+            # Structure: <details>\n<summary>content</summary>\n\nchildren\n</details>
+            return f"<details>\n<summary>{summary_content}</summary>\n\n{children_formatted}\n</details>"
+        else:
+            # No children case
+            return f"<details>\n<summary>{summary_content}</summary>\n</details>"
+
+
 def is_node_object(obj) -> bool:
     """Check if an object is a Node instance (not a dict).
 
@@ -297,6 +369,12 @@ def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
     flags = {
         k: v for k, v in node_dict.items() if k not in ["content", "indent", "children"]
     }
+
+    # Check if this should be a DetailsNode
+    if DetailsNode.matches(content, **flags):
+        return DetailsNode(
+            content=content, indent=node_dict["indent"], children=node_dict["children"]
+        )
 
     # Check if this should be a ChoiceNode
     if ChoiceNode.matches(content, **flags):

@@ -1,5 +1,6 @@
 from .devlog import (
     ChoiceNode,
+    DetailsNode,
     format_tree,
     is_node_object,
     main,
@@ -292,9 +293,18 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        assert result[0]["content"] == "- LLM plan to review:"
-        assert result[0].get("details_block") is True
-        assert len(result[0]["children"]) == 1  # Children preserved
+        expected = DetailsNode(
+            content="- LLM plan to review:",
+            indent=0,
+            children=[
+                {
+                    "content": "```text\nplan content\n```",
+                    "indent": 4,
+                    "children": [],
+                }
+            ],
+        )
+        assert result[0] == expected
 
     def test_details_marker_with_trailing_spaces(self):
         """Test [details] marker removal with trailing spaces."""
@@ -306,8 +316,8 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        assert result[0]["content"] == "- Text here:"
-        assert result[0].get("details_block") is True
+        expected = DetailsNode(content="- Text here:", indent=0, children=[])
+        assert result[0] == expected
 
     def test_details_marker_without_colon(self):
         """Test [details] marker when content doesn't end with colon."""
@@ -321,8 +331,12 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        assert result[0]["content"] == "- Some text"
-        assert result[0].get("details_block") is True
+        expected = DetailsNode(
+            content="- Some text",
+            indent=0,
+            children=[{"content": "- Child content", "indent": 4, "children": []}],
+        )
+        assert result[0] == expected
 
     def test_nested_details_markers(self):
         """Test multiple levels with [details] markers."""
@@ -342,10 +356,18 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        assert result[0]["content"] == "- Parent:"
-        assert result[0].get("details_block") is True
-        assert result[0]["children"][0]["content"] == "- Child:"
-        assert result[0]["children"][0].get("details_block") is True
+        expected = DetailsNode(
+            content="- Parent:",
+            indent=0,
+            children=[
+                DetailsNode(
+                    content="- Child:",
+                    indent=4,
+                    children=[{"content": "- Grandchild", "indent": 8, "children": []}],
+                )
+            ],
+        )
+        assert result[0] == expected
 
 
 class TestFormatTree:
