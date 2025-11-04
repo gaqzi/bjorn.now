@@ -1,6 +1,7 @@
 from .devlog import (
     ChoiceNode,
     DetailsNode,
+    NumberedListNode,
     format_tree,
     is_node_object,
     main,
@@ -516,14 +517,14 @@ class TestFormatTree:
         """Test Case 12: Preserve numbered lists as-is."""
         # Note: The parser returns bullet markers, but we can test with numbered
         input_nodes = [
-            {"content": "1. First item", "indent": 0, "children": []},
-            {
-                "content": "2. Second item",
-                "indent": 0,
-                "children": [
+            NumberedListNode(content="1. First item", indent=0, children=[]),
+            NumberedListNode(
+                content="2. Second item",
+                indent=0,
+                children=[
                     {"content": "- Nested under numbered", "indent": 4, "children": []}
                 ],
-            },
+            ),
         ]
         expected = "1. First item\n" "2. Second item\n" "\n" "Nested under numbered.\n"
         assert format_tree(input_nodes) == expected
@@ -664,9 +665,9 @@ class TestFormatTree:
     def test_case_18_numbered_list_no_extra_newlines(self):
         """Test Case 18: Numbered lists should have no blank lines between items."""
         input_nodes = [
-            {"content": "1. First", "indent": 0, "children": []},
-            {"content": "2. Second", "indent": 0, "children": []},
-            {"content": "3. Third", "indent": 0, "children": []},
+            NumberedListNode(content="1. First", indent=0, children=[]),
+            NumberedListNode(content="2. Second", indent=0, children=[]),
+            NumberedListNode(content="3. Third", indent=0, children=[]),
         ]
         expected = "1. First\n2. Second\n3. Third\n"
         assert format_tree(input_nodes) == expected
@@ -681,8 +682,8 @@ class TestFormatTree:
         assert format_tree(regular_bullets) == expected_regular
 
         numbered_list = [
-            {"content": "1. First", "indent": 0, "children": []},
-            {"content": "2. Second", "indent": 0, "children": []},
+            NumberedListNode(content="1. First", indent=0, children=[]),
+            NumberedListNode(content="2. Second", indent=0, children=[]),
         ]
         expected_numbered = "1. First\n2. Second\n"
         assert format_tree(numbered_list) == expected_numbered
@@ -690,14 +691,14 @@ class TestFormatTree:
     def test_case_18_nested_under_numbered_list(self):
         """Test Case 18: Regular bullets under numbered items should be flattened."""
         input_nodes = [
-            {
-                "content": "1. First item",
-                "indent": 0,
-                "children": [
+            NumberedListNode(
+                content="1. First item",
+                indent=0,
+                children=[
                     {"content": "- Detail about first", "indent": 4, "children": []}
                 ],
-            },
-            {"content": "2. Second item", "indent": 0, "children": []},
+            ),
+            NumberedListNode(content="2. Second item", indent=0, children=[]),
         ]
         expected = "1. First item\n\nDetail about first.\n\n2. Second item\n"
         assert format_tree(input_nodes) == expected

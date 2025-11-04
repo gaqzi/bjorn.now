@@ -342,6 +342,60 @@ class DetailsNode(Node):
             return f"<details>\n<summary>{summary_content}</summary>\n</details>"
 
 
+class NumberedListNode(Node):
+    """Node representing a numbered list item (starts with digit followed by period)."""
+
+    @classmethod
+    def matches(cls, content: str, **flags) -> bool:
+        r"""Match nodes with content matching numbered list pattern ^\d+\."""
+        return bool(re.match(r"^\d+\.\s", content.strip()))
+
+    def modify(self, fn):
+        """Apply function to content and recurse to children."""
+        modified_content = fn(self.content)
+        modified_children = []
+        for child in self.children:
+            if is_node_object(child):
+                modified_children.append(child.modify(fn))
+            else:
+                # Handle dict children
+                modified_child = dict(child)
+                modified_child["content"] = fn(child.get("content", ""))
+                if child.get("children"):
+                    modified_child["children"] = [
+                        c.modify(fn) if is_node_object(c) else c
+                        for c in child["children"]
+                    ]
+                modified_children.append(modified_child)
+        return NumberedListNode(modified_content, self.indent, modified_children)
+
+    def __str__(self) -> str:
+        """Format numbered list item with its children.
+
+        Numbered list items should:
+        - Preserve numbering (no bullet removal)
+        - NOT have periods added (preserve as-is)
+        - Children should be formatted and flattened
+        - No extra blank lines between consecutive items
+        """
+        content = self.content.strip()
+
+        # Format and flatten children
+        child_content = []
+        for child in self.children:
+            formatted_child = _format_node(child)
+            if formatted_child:
+                child_content.append(formatted_child)
+
+        # Add children separated by blank lines
+        if child_content:
+            # When we have children, end with \n\n to separate from the next numbered item
+            return content + "\n\n" + "\n\n".join(child_content) + "\n\n"
+        else:
+            # When no children, just end with single newline
+            return content + "\n"
+
+
 def is_node_object(obj) -> bool:
     """Check if an object is a Node instance (not a dict).
 
@@ -369,6 +423,13 @@ def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
     flags = {
         k: v for k, v in node_dict.items() if k not in ["content", "indent", "children"]
     }
+
+    # Check content pattern first (before flag-based checks)
+    # This ensures NumberedListNode matches before DetailsNode/ChoiceNode
+    if NumberedListNode.matches(content, **flags):
+        return NumberedListNode(
+            content=content, indent=node_dict["indent"], children=node_dict["children"]
+        )
 
     # Check if this should be a DetailsNode
     if DetailsNode.matches(content, **flags):
