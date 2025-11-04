@@ -1,0 +1,12 @@
+{{/*
+  Renders posts in a flat list without date grouping
+
+  Expected context:
+  - .Posts: Collection of post pages to render (already sorted)
+*/}}
+
+{{ $posts := .Posts }}
+
+{{ range $posts }}
+    {{ partial "summary.html" . }}
+{{ end }}

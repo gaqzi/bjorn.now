@@ -1,0 +1,21 @@
+{{/*
+  Dispatcher for post list rendering
+
+  Expected context:
+  - .Posts: Collection of post pages to render
+  - .ShowDateMarkers: Boolean - whether to group by date
+*/}}
+
+{{ $template := "" -}}
+{{ if .ShowDateMarkers -}}
+    {{ $template = "with-dates" -}}
+{{ else -}}
+    {{ $template = "without-dates" -}}
+{{ end -}}
+
+{{ partial (printf "post-list/%s.html" $template) . }}
+
+{{/* Prefetch first 3 posts for performance */}}
+{{ range first 3 .Posts }}
+    <link rel="prefetch" href="{{ .Permalink }}">
+{{ end }}
