@@ -69,21 +69,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Copy button functionality for code blocks
-    const copyButtons = document.querySelectorAll('.copy-button');
-    
-    copyButtons.forEach(button => {
+    // Dynamically inject copy buttons into code blocks marked with copy-enabled class
+    const codeBlocks = document.querySelectorAll('.copy-enabled');
+
+    codeBlocks.forEach(codeBlock => {
+        // Create button element
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+        button.setAttribute('aria-label', 'Copy code to clipboard');
+        button.setAttribute('title', 'Copy to clipboard');
+
+        // Create button content with SVG icon and text
+        button.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 9H11C9.89543 9 9 9.89543 9 11V20C9 21.1046 9.89543 22 11 22H20C21.1046 22 22 21.1046 22 20V11C22 9.89543 21.1046 9 20 9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+            <span class="copied-text">Copied!</span>
+        `;
+
+        // Insert button as first child of code block wrapper
+        codeBlock.insertBefore(button, codeBlock.firstChild);
+
+        // Add click handler
         button.addEventListener('click', async function() {
-            // Find the code element within the same highlight div
-            const highlightDiv = button.closest('.copy-enabled');
-            const codeElement = highlightDiv.querySelector('pre code');
-            
+            const codeElement = codeBlock.querySelector('pre code');
+
             if (!codeElement) {
                 console.error('Could not find code element to copy');
                 return;
             }
-            
+
             const textToCopy = codeElement.textContent;
-            
+
             try {
                 if (navigator.clipboard && window.isSecureContext) {
                     // Use modern clipboard API
@@ -101,26 +120,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.execCommand('copy');
                     textArea.remove();
                 }
-                
+
                 // Show "Copied!" feedback
                 button.classList.add('copied');
                 button.setAttribute('aria-label', 'Code copied to clipboard');
-                
+
                 // Reset after 2 seconds
                 setTimeout(() => {
                     button.classList.remove('copied');
                     button.setAttribute('aria-label', 'Copy code to clipboard');
                 }, 2000);
-                
+
             } catch (error) {
                 console.error('Failed to copy code:', error);
-                
+
                 // Show error feedback briefly
                 const copyText = button.querySelector('.copy-text');
                 const originalText = copyText.textContent;
                 copyText.textContent = 'Failed';
                 button.style.color = '#dc3545'; // Error color
-                
+
                 setTimeout(() => {
                     copyText.textContent = originalText;
                     button.style.color = '';
