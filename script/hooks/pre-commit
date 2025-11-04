@@ -1,0 +1,6 @@
+#!/bin/bash
+# Pre-commit hook to run linting and tests
+
+script/hooks/commit-assets-when-introduced &&
+  script/lint &&
+  script/test
