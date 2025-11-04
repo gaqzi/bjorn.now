@@ -1,6 +1,41 @@
 #!/bin/bash
-# Pre-commit hook to run linting and tests
+# Pre-commit hook to run linting and tests only when relevant files change
 
-script/hooks/commit-assets-when-introduced &&
-  script/lint &&
+set -e
+
+# Get list of staged files
+staged_files=$(git diff --cached --name-only)
+
+# Check if any files match the pattern
+has_content_changes=false
+has_code_changes=false
+
+while IFS= read -r file; do
+  # Check for content/data/assets changes
+  if [[ "$file" =~ ^(assets|data|content)/ ]]; then
+    has_content_changes=true
+  fi
+
+  # Check for code changes
+  if [[ "$file" =~ ^(script|src|tests)/ ]]; then
+    has_code_changes=true
+  fi
+done <<< "$staged_files"
+
+# If nothing needs to be checked, we're good
+if [ "$has_content_changes" = false ] && [ "$has_code_changes" = false ]; then
+  echo "No content or code changes detected, skipping checks"
+  exit 0
+fi
+
+# Run checks based on what changed
+if [ "$has_content_changes" = true ]; then
+  echo "Content/data/assets changed, running lint checks..."
+  script/hooks/commit-assets-when-introduced
+  script/lint
+fi
+
+if [ "$has_code_changes" = true ]; then
+  echo "Code changed, running tests..."
   script/test
+fi
