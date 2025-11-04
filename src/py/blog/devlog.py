@@ -396,6 +396,65 @@ class NumberedListNode(Node):
             return content + "\n"
 
 
+class QuoteNode(Node):
+    """Node representing a quote block (starts with "- > ")."""
+
+    @classmethod
+    def matches(cls, content: str, **flags) -> bool:
+        """Match nodes with content starting with "- > "."""
+        return content.strip().startswith("- > ")
+
+    def modify(self, fn):
+        """Apply function to content and recurse to children."""
+        modified_content = fn(self.content)
+        modified_children = []
+        for child in self.children:
+            if is_node_object(child):
+                modified_children.append(child.modify(fn))
+            else:
+                # Handle dict children
+                modified_child = dict(child)
+                modified_child["content"] = fn(child.get("content", ""))
+                if child.get("children"):
+                    modified_child["children"] = [
+                        c.modify(fn) if is_node_object(c) else c
+                        for c in child["children"]
+                    ]
+                modified_children.append(modified_child)
+        return QuoteNode(modified_content, self.indent, modified_children)
+
+    def __str__(self) -> str:
+        """Format quote block by preserving > prefixes on each line.
+
+        Removes the leading "- " bullet marker and ensures each line
+        has the "> " prefix.
+        """
+        content = self.content.strip()
+
+        # Remove the leading "- " bullet marker
+        if content.startswith("- "):
+            content = content[2:]
+
+        # Split into lines
+        lines = content.split("\n")
+        formatted_lines = []
+
+        for line in lines:
+            # Remove leading/trailing whitespace to normalize
+            stripped = line.strip()
+            if stripped:
+                # If line already starts with "> ", keep it; otherwise add it
+                if not stripped.startswith("> "):
+                    formatted_lines.append("> " + stripped)
+                else:
+                    formatted_lines.append(stripped)
+            else:
+                # Preserve empty lines if needed (though unlikely in quotes)
+                formatted_lines.append(line)
+
+        return "\n".join(formatted_lines)
+
+
 class PreserveListNode(Node):
     """Node representing a list with preserve_list flag to preserve children as indented bullets."""
 
@@ -537,9 +596,14 @@ def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
     }
 
     # Check content pattern first (before flag-based checks)
-    # This ensures NumberedListNode matches before DetailsNode/ChoiceNode/PreserveListNode
+    # This ensures NumberedListNode and QuoteNode match before DetailsNode/ChoiceNode/PreserveListNode
     if NumberedListNode.matches(content, **flags):
         return NumberedListNode(
+            content=content, indent=node_dict["indent"], children=node_dict["children"]
+        )
+
+    if QuoteNode.matches(content, **flags):
+        return QuoteNode(
             content=content, indent=node_dict["indent"], children=node_dict["children"]
         )
 

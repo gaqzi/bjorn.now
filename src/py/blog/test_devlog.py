@@ -3,6 +3,7 @@ from .devlog import (
     DetailsNode,
     NumberedListNode,
     PreserveListNode,
+    QuoteNode,
     format_tree,
     is_node_object,
     main,
