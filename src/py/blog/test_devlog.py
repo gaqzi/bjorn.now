@@ -5,6 +5,7 @@ from .devlog import (
     NumberedListNode,
     PreserveListNode,
     QuoteNode,
+    RegularNode,
     format_tree,
     is_node_object,
     main,
@@ -141,7 +142,7 @@ class TestTransformTree:
         input_nodes = [
             {"content": "- {{[[DONE]]}} Task completed", "indent": 0, "children": []}
         ]
-        expected = [{"content": "- Task completed", "indent": 0, "children": []}]
+        expected = [RegularNode(content="- Task completed", indent=0, children=[])]
         assert transform_tree(input_nodes) == expected
 
     def test_case_4_remove_todo_marker(self):
@@ -149,7 +150,7 @@ class TestTransformTree:
         input_nodes = [
             {"content": "- {{[[TODO]]}} Task pending", "indent": 0, "children": []}
         ]
-        expected = [{"content": "- Task pending", "indent": 0, "children": []}]
+        expected = [RegularNode(content="- Task pending", indent=0, children=[])]
         assert transform_tree(input_nodes) == expected
 
     def test_case_5_remove_meta_trees(self):
@@ -166,8 +167,8 @@ class TestTransformTree:
             {"content": "- Another regular", "indent": 0, "children": []},
         ]
         expected = [
-            {"content": "- Regular bullet", "indent": 0, "children": []},
-            {"content": "- Another regular", "indent": 0, "children": []},
+            RegularNode(content="- Regular bullet", indent=0, children=[]),
+            RegularNode(content="- Another regular", indent=0, children=[]),
         ]
         assert transform_tree(input_nodes) == expected
 
@@ -204,7 +205,7 @@ code here
     def test_case_8_convert_double_colon_labels(self):
         """Test Case 8: Convert :: labels to **label:** format."""
         input_nodes = [{"content": "- Constraints::", "indent": 0, "children": []}]
-        expected = [{"content": "- **Constraints:**", "indent": 0, "children": []}]
+        expected = [RegularNode(content="- **Constraints:**", indent=0, children=[])]
         assert transform_tree(input_nodes) == expected
 
     def test_case_8_convert_double_colon_with_text(self):
@@ -213,7 +214,7 @@ code here
             {"content": "- Decision:: Go with this", "indent": 0, "children": []}
         ]
         expected = [
-            {"content": "- **Decision:** Go with this", "indent": 0, "children": []}
+            RegularNode(content="- **Decision:** Go with this", indent=0, children=[])
         ]
         assert transform_tree(input_nodes) == expected
 
@@ -223,7 +224,7 @@ code here
             {"content": "- Some text:: with content", "indent": 0, "children": []}
         ]
         expected = [
-            {"content": "- **Some text:** with content", "indent": 0, "children": []}
+            RegularNode(content="- **Some text:** with content", indent=0, children=[])
         ]
         assert transform_tree(input_nodes) == expected
 
@@ -244,8 +245,8 @@ code here
             content="- Keep these as list:",
             indent=0,
             children=[
-                {"content": "- First", "indent": 4, "children": []},
-                {"content": "- Second", "indent": 4, "children": []},
+                RegularNode(content="- First", indent=4, children=[]),
+                RegularNode(content="- Second", indent=4, children=[]),
             ],
         )
         assert result[0] == expected
@@ -288,7 +289,9 @@ code here
                 PreserveListNode(
                     content="- Child:",
                     indent=4,
-                    children=[{"content": "- Grandchild", "indent": 8, "children": []}],
+                    children=[
+                        RegularNode(content="- Grandchild", indent=8, children=[])
+                    ],
                 )
             ],
         )
@@ -351,7 +354,7 @@ code here
         expected = DetailsNode(
             content="- Some text",
             indent=0,
-            children=[{"content": "- Child content", "indent": 4, "children": []}],
+            children=[RegularNode(content="- Child content", indent=4, children=[])],
         )
         assert result[0] == expected
 
@@ -380,7 +383,9 @@ code here
                 DetailsNode(
                     content="- Child:",
                     indent=4,
-                    children=[{"content": "- Grandchild", "indent": 8, "children": []}],
+                    children=[
+                        RegularNode(content="- Grandchild", indent=8, children=[])
+                    ],
                 )
             ],
         )
@@ -393,12 +398,11 @@ class TestFormatTree:
     def test_case_9_format_choice_block_title(self):
         """Test Case 9: Format Choice block title - [[Choice]] to **Choice:**."""
         input_nodes = [
-            {
-                "content": "- [[Choice]] Manage workflow",
-                "indent": 0,
-                "children": [],
-                "type": "choice_block",
-            }
+            ChoiceNode(
+                content="- [[Choice]] Manage workflow",
+                indent=0,
+                children=[],
+            )
         ]
         expected = "- **Choice:** Manage workflow\n"
         assert format_tree(input_nodes) == expected
@@ -406,90 +410,93 @@ class TestFormatTree:
     def test_case_10_format_choice_blocks_with_nested_bullets(self):
         """Test Case 10: Format Choice blocks with nested bullets."""
         input_nodes = [
-            {
-                "content": "- [[Choice]] Title",
-                "indent": 0,
-                "type": "choice_block",
-                "children": [
-                    {
-                        "content": "- **Constraints:**",
-                        "indent": 4,
-                        "children": [
-                            {"content": "- Must work", "indent": 8, "children": []},
-                            {"content": "- Must be fast", "indent": 8, "children": []},
+            ChoiceNode(
+                content="- [[Choice]] Title",
+                indent=0,
+                children=[
+                    RegularNode(
+                        content="- **Constraints:**",
+                        indent=4,
+                        children=[
+                            RegularNode(content="- Must work", indent=8, children=[]),
+                            RegularNode(
+                                content="- Must be fast", indent=8, children=[]
+                            ),
                         ],
-                    },
-                    {
-                        "content": "- **Options:**",
-                        "indent": 4,
-                        "children": [
-                            {
-                                "content": "- Option A",
-                                "indent": 8,
-                                "children": [
-                                    {
-                                        "content": "**Advantages:**",
-                                        "indent": 12,
-                                        "children": [
-                                            {
-                                                "content": "- Simple",
-                                                "indent": 16,
-                                                "children": [],
-                                            },
+                    ),
+                    RegularNode(
+                        content="- **Options:**",
+                        indent=4,
+                        children=[
+                            RegularNode(
+                                content="- Option A",
+                                indent=8,
+                                children=[
+                                    RegularNode(
+                                        content="**Advantages:**",
+                                        indent=12,
+                                        children=[
+                                            RegularNode(
+                                                content="- Simple",
+                                                indent=16,
+                                                children=[],
+                                            ),
                                         ],
-                                    },
-                                    {
-                                        "content": "**Disadvantages:**",
-                                        "indent": 12,
-                                        "children": [
-                                            {
-                                                "content": "- Too simple?",
-                                                "indent": 16,
-                                                "children": [],
-                                            },
+                                    ),
+                                    RegularNode(
+                                        content="**Disadvantages:**",
+                                        indent=12,
+                                        children=[
+                                            RegularNode(
+                                                content="- Too simple?",
+                                                indent=16,
+                                                children=[],
+                                            ),
                                         ],
-                                    },
+                                    ),
                                 ],
-                            },
-                            {
-                                "content": "- Option B",
-                                "indent": 4,
-                                "children": [
-                                    {
-                                        "content": "**Advantages:**",
-                                        "indent": 12,
-                                        "children": [
-                                            {
-                                                "content": "- Covers all scenarios",
-                                                "indent": 16,
-                                                "children": [],
-                                            },
+                            ),
+                            RegularNode(
+                                content="- Option B",
+                                indent=4,
+                                children=[
+                                    RegularNode(
+                                        content="**Advantages:**",
+                                        indent=12,
+                                        children=[
+                                            RegularNode(
+                                                content="- Covers all scenarios",
+                                                indent=16,
+                                                children=[],
+                                            ),
                                         ],
-                                    },
-                                    {
-                                        "content": "**Disadvantages:**",
-                                        "indent": 12,
-                                        "children": [
-                                            {
-                                                "content": "- Hard to implement and will take a long time",
-                                                "indent": 16,
-                                                "children": [],
-                                            },
+                                    ),
+                                    RegularNode(
+                                        content="**Disadvantages:**",
+                                        indent=12,
+                                        children=[
+                                            RegularNode(
+                                                content="- Hard to implement and will take a long time",
+                                                indent=16,
+                                                children=[],
+                                            ),
                                         ],
-                                    },
+                                    ),
                                 ],
-                            },
+                            ),
                         ],
-                    },
-                    {
-                        "content": "- **Decision:** Go with option A",
-                        "indent": 4,
-                        "children": [
-                            {"content": "- It feels right", "indent": 8, "children": []}
+                    ),
+                    RegularNode(
+                        content="- **Decision:** Go with option A",
+                        indent=4,
+                        children=[
+                            RegularNode(
+                                content="- It feels right", indent=8, children=[]
+                            )
                         ],
-                    },
+                    ),
                 ],
-            }
+            )
         ]
         expected = (
             "- **Choice:** Title\n"
@@ -515,14 +522,14 @@ class TestFormatTree:
     def test_case_11_flatten_regular_bullets(self):
         """Test Case 11: Flatten regular bullets to paragraphs."""
         input_nodes = [
-            {"content": "- This is a bullet", "indent": 0, "children": []},
-            {
-                "content": "- Another bullet",
-                "indent": 0,
-                "children": [
-                    {"content": "- Nested content", "indent": 4, "children": []}
+            RegularNode(content="- This is a bullet", indent=0, children=[]),
+            RegularNode(
+                content="- Another bullet",
+                indent=0,
+                children=[
+                    RegularNode(content="- Nested content", indent=4, children=[])
                 ],
-            },
+            ),
         ]
         expected = (
             "This is a bullet.\n" "\n" "Another bullet.\n" "\n" "Nested content.\n"
@@ -538,7 +545,9 @@ class TestFormatTree:
                 content="2. Second item",
                 indent=0,
                 children=[
-                    {"content": "- Nested under numbered", "indent": 4, "children": []}
+                    RegularNode(
+                        content="- Nested under numbered", indent=4, children=[]
+                    )
                 ],
             ),
         ]
@@ -548,7 +557,7 @@ class TestFormatTree:
     def test_case_13_punctuation_no_punctuation(self):
         """Test Case 13: Add period to text without punctuation."""
         input_nodes = [
-            {"content": "- No punctuation here", "indent": 0, "children": []}
+            RegularNode(content="- No punctuation here", indent=0, children=[])
         ]
         expected = "No punctuation here.\n"
         assert format_tree(input_nodes) == expected
@@ -556,7 +565,7 @@ class TestFormatTree:
     def test_case_13_punctuation_already_has_period(self):
         """Test Case 13: Don't add period if already has one."""
         input_nodes = [
-            {"content": "- Already has period.", "indent": 0, "children": []}
+            RegularNode(content="- Already has period.", indent=0, children=[])
         ]
         expected = "Already has period.\n"
         assert format_tree(input_nodes) == expected
@@ -564,32 +573,32 @@ class TestFormatTree:
     def test_case_13_punctuation_smiley(self):
         """Test Case 13: Don't add period if ends with smiley."""
         input_nodes = [
-            {"content": "- Ends with smiley :)", "indent": 0, "children": []}
+            RegularNode(content="- Ends with smiley :)", indent=0, children=[])
         ]
         expected = "Ends with smiley :)\n"
         assert format_tree(input_nodes) == expected
 
     def test_case_13_punctuation_question(self):
         """Test Case 13: Don't add period if ends with question mark."""
-        input_nodes = [{"content": "- Question?", "indent": 0, "children": []}]
+        input_nodes = [RegularNode(content="- Question?", indent=0, children=[])]
         expected = "Question?\n"
         assert format_tree(input_nodes) == expected
 
     def test_case_13_punctuation_exclamation(self):
         """Test Case 13: Don't add period if ends with exclamation."""
-        input_nodes = [{"content": "- Exclamation!", "indent": 0, "children": []}]
+        input_nodes = [RegularNode(content="- Exclamation!", indent=0, children=[])]
         expected = "Exclamation!\n"
         assert format_tree(input_nodes) == expected
 
     def test_case_13_punctuation_bold_label(self):
         """Test Case 13: Don't add period if ends with bold label like **Constraints:**."""
-        input_nodes = [{"content": "- **Constraints:**", "indent": 0, "children": []}]
+        input_nodes = [RegularNode(content="- **Constraints:**", indent=0, children=[])]
         expected = "**Constraints:**\n"
         assert format_tree(input_nodes) == expected
 
     def test_case_14_dont_add_punctuation_to_headers(self):
         """Test Case 14: Don't add period to headers."""
-        input_nodes = [{"content": "# Header", "indent": 0, "children": []}]
+        input_nodes = [RegularNode(content="# Header", indent=0, children=[])]
         expected = "# Header\n"
         assert format_tree(input_nodes) == expected
 
@@ -613,17 +622,17 @@ class TestFormatTree:
     ):
         """Test Case 16: Indentation should be normalized on multi-line bullets."""
         input_nodes = [
-            {
-                "content": ("- First line,\n" "  that is continued"),
-                "indent": 0,
-                "children": [
-                    {
-                        "content": ("- Second, indented line,\n" "  that is continued"),
-                        "indent": 4,
-                        "children": [],
-                    }
+            RegularNode(
+                content=("- First line,\n" "  that is continued"),
+                indent=0,
+                children=[
+                    RegularNode(
+                        content=("- Second, indented line,\n" "  that is continued"),
+                        indent=4,
+                        children=[],
+                    )
                 ],
-            }
+            )
         ]
         expected = (
             "First line,\n"
@@ -637,11 +646,11 @@ class TestFormatTree:
     def test_case_17_format_quote_block_single_line(self):
         """Test Case 17: Format single line quote block with > prefix."""
         input_nodes = [
-            {
-                "content": "- > Quote text",
-                "indent": 0,
-                "children": [],
-            }
+            QuoteNode(
+                content="- > Quote text",
+                indent=0,
+                children=[],
+            )
         ]
         expected = "> Quote text\n"
         assert format_tree(input_nodes) == expected
@@ -649,15 +658,15 @@ class TestFormatTree:
     def test_case_17_format_quote_block_multi_line(self):
         """Test Case 17: Format multi-line quote block with > prefix on each line."""
         input_nodes = [
-            {
-                "content": (
+            QuoteNode(
+                content=(
                     "- > __For each desired change,\n"
                     "  > make the change easy (warning: this may be hard),\n"
                     "  > then make the easy change__"
                 ),
-                "indent": 0,
-                "children": [],
-            }
+                indent=0,
+                children=[],
+            )
         ]
         expected = (
             "> __For each desired change,\n"
@@ -669,11 +678,11 @@ class TestFormatTree:
     def test_case_17_quote_block_preserve_dash_markers(self):
         """Test Case 17: Don't remove dash markers in quote blocks."""
         input_nodes = [
-            {
-                "content": "- > This has - dashes - in it",
-                "indent": 0,
-                "children": [],
-            }
+            QuoteNode(
+                content="- > This has - dashes - in it",
+                indent=0,
+                children=[],
+            )
         ]
         expected = "> This has - dashes - in it\n"
         assert format_tree(input_nodes) == expected
@@ -691,8 +700,8 @@ class TestFormatTree:
     def test_case_18_numbered_list_vs_regular_bullets(self):
         """Test Case 18: Show different treatment for numbered vs regular bullets."""
         regular_bullets = [
-            {"content": "- First", "indent": 0, "children": []},
-            {"content": "- Second", "indent": 0, "children": []},
+            RegularNode(content="- First", indent=0, children=[]),
+            RegularNode(content="- Second", indent=0, children=[]),
         ]
         expected_regular = "First.\n\nSecond.\n"
         assert format_tree(regular_bullets) == expected_regular
@@ -711,7 +720,7 @@ class TestFormatTree:
                 content="1. First item",
                 indent=0,
                 children=[
-                    {"content": "- Detail about first", "indent": 4, "children": []}
+                    RegularNode(content="- Detail about first", indent=4, children=[])
                 ],
             ),
             NumberedListNode(content="2. Second item", indent=0, children=[]),
@@ -726,8 +735,8 @@ class TestFormatTree:
                 content="- Keep these as list:",
                 indent=0,
                 children=[
-                    {"content": "- First", "indent": 4, "children": []},
-                    {"content": "- Second", "indent": 4, "children": []},
+                    RegularNode(content="- First", indent=4, children=[]),
+                    RegularNode(content="- Second", indent=4, children=[]),
                 ],
             )
         ]
@@ -738,14 +747,14 @@ class TestFormatTree:
         """Test Case 19: Show difference between [list] and normal flattening."""
         # Normal flattening
         normal = [
-            {
-                "content": "- Parent",
-                "indent": 0,
-                "children": [
-                    {"content": "- Child1", "indent": 4, "children": []},
-                    {"content": "- Child2", "indent": 4, "children": []},
+            RegularNode(
+                content="- Parent",
+                indent=0,
+                children=[
+                    RegularNode(content="- Child1", indent=4, children=[]),
+                    RegularNode(content="- Child2", indent=4, children=[]),
                 ],
-            }
+            )
         ]
         expected_normal = "Parent.\n\nChild1.\n\nChild2.\n"
         assert format_tree(normal) == expected_normal
@@ -756,8 +765,8 @@ class TestFormatTree:
                 content="- Parent",
                 indent=0,
                 children=[
-                    {"content": "- Child1", "indent": 4, "children": []},
-                    {"content": "- Child2", "indent": 4, "children": []},
+                    RegularNode(content="- Child1", indent=4, children=[]),
+                    RegularNode(content="- Child2", indent=4, children=[]),
                 ],
             )
         ]
@@ -775,7 +784,7 @@ class TestFormatTree:
                         content="- Child:",
                         indent=4,
                         children=[
-                            {"content": "- Grandchild", "indent": 8, "children": []}
+                            RegularNode(content="- Grandchild", indent=8, children=[])
                         ],
                     )
                 ],
@@ -787,24 +796,23 @@ class TestFormatTree:
     def test_case_20_code_block_in_choice_alignment(self):
         """Test Case 20: Code blocks in Choice blocks should maintain proper indentation."""
         input_nodes = [
-            {
-                "content": "- [[Choice]] Test choice",
-                "indent": 0,
-                "type": "choice_block",
-                "children": [
-                    {
-                        "content": "- **Options:**",
-                        "indent": 4,
-                        "children": [
+            ChoiceNode(
+                content="- [[Choice]] Test choice",
+                indent=0,
+                children=[
+                    RegularNode(
+                        content="- **Options:**",
+                        indent=4,
+                        children=[
                             CodeFenceNode(
                                 content="- Option A\n  ```python\n  def hello():\n      print('hi')\n  ```",
                                 indent=8,
                                 children=[],
                             )
                         ],
-                    }
+                    )
                 ],
-            }
+            )
         ]
         expected = (
             "- **Choice:** Test choice\n"
@@ -820,11 +828,10 @@ class TestFormatTree:
     def test_case_20_multi_line_code_in_choice(self):
         """Test Case 20: Multi-line code blocks should preserve internal indentation."""
         input_nodes = [
-            {
-                "content": "- [[Choice]] Code example",
-                "indent": 0,
-                "type": "choice_block",
-                "children": [
+            ChoiceNode(
+                content="- [[Choice]] Code example",
+                indent=0,
+                children=[
                     CodeFenceNode(
                         content=(
                             "```plaintext\n"
@@ -836,7 +843,7 @@ class TestFormatTree:
                         children=[],
                     )
                 ],
-            }
+            )
         ]
         expected = (
             "- **Choice:** Code example\n"
@@ -850,24 +857,23 @@ class TestFormatTree:
     def test_case_20_code_at_different_nesting_levels(self):
         """Test Case 20: Code blocks at various indent depths should align correctly."""
         input_nodes = [
-            {
-                "content": "- [[Choice]] Nested code",
-                "indent": 0,
-                "type": "choice_block",
-                "children": [
-                    {
-                        "content": "- Level 1",
-                        "indent": 4,
-                        "children": [
+            ChoiceNode(
+                content="- [[Choice]] Nested code",
+                indent=0,
+                children=[
+                    RegularNode(
+                        content="- Level 1",
+                        indent=4,
+                        children=[
                             CodeFenceNode(
                                 content="- Level 2\n  ```python\n  code\n  ```",
                                 indent=8,
                                 children=[],
                             )
                         ],
-                    }
+                    )
                 ],
-            }
+            )
         ]
         expected = (
             "- **Choice:** Nested code\n"
@@ -882,26 +888,25 @@ class TestFormatTree:
     def test_case_21_choice_stays_in_place_with_content(self):
         """Test Case 21: Choice blocks should appear with flattened sibling content."""
         input_nodes = [
-            {
-                "content": "- Parent",
-                "indent": 0,
-                "children": [
-                    {"content": "- Regular text before", "indent": 4, "children": []},
-                    {
-                        "content": "- [[Choice]] My choice",
-                        "indent": 4,
-                        "type": "choice_block",
-                        "children": [
-                            {
-                                "content": "- **Decision:** Done",
-                                "indent": 8,
-                                "children": [],
-                            }
+            RegularNode(
+                content="- Parent",
+                indent=0,
+                children=[
+                    RegularNode(content="- Regular text before", indent=4, children=[]),
+                    ChoiceNode(
+                        content="- [[Choice]] My choice",
+                        indent=4,
+                        children=[
+                            RegularNode(
+                                content="- **Decision:** Done",
+                                indent=8,
+                                children=[],
+                            )
                         ],
-                    },
-                    {"content": "- Regular text after", "indent": 4, "children": []},
+                    ),
+                    RegularNode(content="- Regular text after", indent=4, children=[]),
                 ],
-            }
+            )
         ]
         # Choice block should stays with the flattened content
         expected = (
@@ -919,25 +924,23 @@ class TestFormatTree:
     def test_case_21_multiple_choice_blocks_ordering(self):
         """Test Case 21: Multiple Choice blocks should preserve their relative order."""
         input_nodes = [
-            {
-                "content": "- Parent",
-                "indent": 0,
-                "children": [
-                    {"content": "- Regular text", "indent": 4, "children": []},
-                    {
-                        "content": "- [[Choice]] First choice",
-                        "indent": 4,
-                        "type": "choice_block",
-                        "children": [],
-                    },
-                    {
-                        "content": "- [[Choice]] Second choice",
-                        "indent": 4,
-                        "type": "choice_block",
-                        "children": [],
-                    },
+            RegularNode(
+                content="- Parent",
+                indent=0,
+                children=[
+                    RegularNode(content="- Regular text", indent=4, children=[]),
+                    ChoiceNode(
+                        content="- [[Choice]] First choice",
+                        indent=4,
+                        children=[],
+                    ),
+                    ChoiceNode(
+                        content="- [[Choice]] Second choice",
+                        indent=4,
+                        children=[],
+                    ),
                 ],
-            }
+            )
         ]
         expected = (
             "Parent.\n"
@@ -953,15 +956,14 @@ class TestFormatTree:
     def test_format_details_block_simple(self):
         """Test formatting a simple details block with summary tag."""
         input_nodes = [
-            {
-                "content": "- Plan to review:",
-                "indent": 0,
-                "children": [
-                    {"content": "- Point one", "indent": 4, "children": []},
-                    {"content": "- Point two", "indent": 4, "children": []},
+            DetailsNode(
+                content="- Plan to review:",
+                indent=0,
+                children=[
+                    RegularNode(content="- Point one", indent=4, children=[]),
+                    RegularNode(content="- Point two", indent=4, children=[]),
                 ],
-                "details_block": True,
-            }
+            )
         ]
         expected = (
             "<details>\n"
@@ -977,12 +979,11 @@ class TestFormatTree:
     def test_format_details_block_no_children(self):
         """Test formatting details block with no children (edge case)."""
         input_nodes = [
-            {
-                "content": "- Empty details:",
-                "indent": 0,
-                "children": [],
-                "details_block": True,
-            }
+            DetailsNode(
+                content="- Empty details:",
+                indent=0,
+                children=[],
+            )
         ]
         expected = "<details>\n<summary>Empty details:</summary>\n</details>\n"
         assert format_tree(input_nodes) == expected
@@ -990,14 +991,13 @@ class TestFormatTree:
     def test_format_details_block_summary_without_colon(self):
         """Test details block when summary doesn't end with colon."""
         input_nodes = [
-            {
-                "content": "- Click to expand",
-                "indent": 0,
-                "children": [
-                    {"content": "- Hidden content", "indent": 4, "children": []},
+            DetailsNode(
+                content="- Click to expand",
+                indent=0,
+                children=[
+                    RegularNode(content="- Hidden content", indent=4, children=[]),
                 ],
-                "details_block": True,
-            }
+            )
         ]
         expected = (
             "<details>\n"
@@ -1011,18 +1011,17 @@ class TestFormatTree:
     def test_format_details_block_with_code(self):
         """Test formatting details block containing code fences."""
         input_nodes = [
-            {
-                "content": "- Implementation plan:",
-                "indent": 0,
-                "children": [
+            DetailsNode(
+                content="- Implementation plan:",
+                indent=0,
+                children=[
                     CodeFenceNode(
                         content="```python\ndef hello():\n    print('hi')\n```",
                         indent=4,
                         children=[],
                     )
                 ],
-                "details_block": True,
-            }
+            )
         ]
         expected = (
             "<details>\n"
@@ -1039,18 +1038,17 @@ class TestFormatTree:
     def test_format_details_with_mixed_content(self):
         """Test details block with various child node types."""
         input_nodes = [
-            {
-                "content": "- Analysis:",
-                "indent": 0,
-                "children": [
-                    {"content": "- Regular text", "indent": 4, "children": []},
+            DetailsNode(
+                content="- Analysis:",
+                indent=0,
+                children=[
+                    RegularNode(content="- Regular text", indent=4, children=[]),
                     CodeFenceNode(
                         content="```python\ncode\n```", indent=4, children=[]
                     ),
-                    {"content": "- More text", "indent": 4, "children": []},
+                    RegularNode(content="- More text", indent=4, children=[]),
                 ],
-                "details_block": True,
-            }
+            )
         ]
         expected = (
             "<details>\n"

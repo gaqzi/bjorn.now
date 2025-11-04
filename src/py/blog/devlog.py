@@ -612,6 +612,85 @@ class PreserveListNode(Node):
         return "\n".join(formatted_lines)
 
 
+class RegularNode(Node):
+    """Node representing a regular bullet (default fallback)."""
+
+    @classmethod
+    def matches(cls, content: str, **flags) -> bool:
+        """Match all nodes (this is the fallback)."""
+        return True
+
+    def modify(self, fn):
+        """Apply function to content and recurse to children."""
+        modified_content = fn(self.content)
+        modified_children = []
+        for child in self.children:
+            if is_node_object(child):
+                modified_children.append(child.modify(fn))
+            else:
+                # Handle dict children
+                modified_child = dict(child)
+                modified_child["content"] = fn(child.get("content", ""))
+                if child.get("children"):
+                    modified_child["children"] = [
+                        c.modify(fn) if is_node_object(c) else c
+                        for c in child["children"]
+                    ]
+                modified_children.append(modified_child)
+        return RegularNode(modified_content, self.indent, modified_children)
+
+    def __str__(self) -> str:
+        """Format regular bullet node with flattening.
+
+        Returns:
+            Formatted node with children flattened and punctuation added
+        """
+        content = self.content.strip()
+
+        # Remove bullet marker if present, by making it a space so we can dedent
+        if content.startswith("- "):
+            content = content.replace("- ", "  ", 1)
+            content = textwrap.dedent(content)
+
+        # For regular bullets, process children in order maintaining sequence
+        # This includes regular content that gets flattened and choice blocks inline
+        result_parts = []
+
+        # Add punctuation to root content if present
+        if content:
+            result_parts.append(_add_punctuation(content))
+
+        # Process children, detecting consecutive numbered list items
+        i = 0
+        while i < len(self.children):
+            child = self.children[i]
+
+            # Check if this starts a sequence of numbered list items
+            if _is_numbered_list_item(child):
+                # Collect consecutive numbered list items
+                joined, i = _collect_and_format_numbered_items(self.children, i)
+                if joined:
+                    result_parts.append(joined)
+            else:
+                # Check if child is a choice block (Node object or dict with type)
+                is_choice = (
+                    is_node_object(child) and isinstance(child, ChoiceNode)
+                ) or (not is_node_object(child) and child.get("type") == "choice_block")
+                if is_choice:
+                    # Format choice block and add it
+                    formatted_child = _format_node(child)
+                    if formatted_child:
+                        result_parts.append(formatted_child)
+                else:
+                    # Format non-choice children and flatten their content
+                    formatted_child = _format_node(child)
+                    if formatted_child:
+                        result_parts.append(formatted_child)
+                i += 1
+
+        return "\n\n".join(result_parts)
+
+
 def is_node_object(obj) -> bool:
     """Check if an object is a Node instance (not a dict).
 
@@ -624,14 +703,14 @@ def is_node_object(obj) -> bool:
     return isinstance(obj, Node)
 
 
-def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
-    """Convert a dict to a Node object if appropriate, otherwise return dict.
+def dict_to_node(node_dict: NodeDict) -> Node:
+    """Convert a dict to a Node object.
 
     Args:
-        node_dict: The dict to potentially convert
+        node_dict: The dict to convert
 
     Returns:
-        A Node object if the dict matches a Node type, otherwise the original dict
+        A Node object (always returns a Node, never a dict)
     """
     content = node_dict.get("content", "")
 
@@ -681,8 +760,10 @@ def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
             content=content, indent=node_dict["indent"], children=node_dict["children"]
         )
 
-    # Return dict for types not yet implemented as Node classes
-    return node_dict
+    # RegularNode is the final fallback (matches everything)
+    return RegularNode(
+        content=content, indent=node_dict["indent"], children=node_dict["children"]
+    )
 
 
 def _collect_bullet_groups(lines: list[str]) -> list[tuple[int, str]]:
