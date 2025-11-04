@@ -89,7 +89,12 @@ class Node(ABC):
         """
         if type(self) != type(other):
             return False
-        return self.__dict__ == other.__dict__
+        # Use content property for comparison (works for all nodes including CodeFenceNode)
+        return (
+            self.content == other.content
+            and self.indent == other.indent
+            and self.children == other.children
+        )
 
     def __repr__(self) -> str:
         """Return a detailed string representation for debugging.
@@ -121,7 +126,7 @@ class ChoiceNode(Node):
         # Remove bullet marker if present, by making it a space so we can dedent
         if content.startswith("- "):
             content = content.replace("- ", "  ", 1)
-            content = textwrap.dedent(content)
+            content = _dedent_preserving_fences(content)
 
         # Convert [[Choice]] to **Choice:**
         content = re.sub(r"\[\[Choice\]\]", "**Choice:**", content)
@@ -273,7 +278,7 @@ class DetailsNode(Node):
         # Remove bullet marker if present
         if content.startswith("- "):
             content = content.replace("- ", "  ", 1)
-            content = textwrap.dedent(content)
+            content = _dedent_preserving_fences(content)
 
         # Split content into first line (summary) and continuation lines
         lines = content.split("\n", 1)
@@ -401,8 +406,108 @@ class QuoteNode(Node):
 class CodeFenceNode(Node):
     """Node representing a code fence (contains triple backticks).
 
-    This is a basic implementation for now - full code fence protection will come in Phase 2.
+    Protects code fence content from transformations by parsing and storing
+    fences separately from pre/post fence text.
     """
+
+    def __init__(self, content: str, indent: int, children: list):
+        """Initialize a code fence node and parse fence content.
+
+        Args:
+            content: The text content including code fences
+            indent: Indentation level in spaces
+            children: List of child nodes
+        """
+        # Store indent and children like regular nodes
+        self.indent = indent
+        self.children = children
+
+        # Parse content to extract fences
+        self._parse_content(content)
+
+    def _parse_content(self, content: str):
+        """Parse content to extract pre-fence text, fences, and post-fence text.
+
+        Args:
+            content: The full content string to parse
+        """
+        # Find all fence blocks - match opening ```, content, closing ```
+        fence_pattern = r"```[^\n]*\n(?:.*?\n)?```"
+        matches = list(re.finditer(fence_pattern, content, re.DOTALL))
+
+        if not matches:
+            # No fences found
+            self._pre_fence_text = content
+            self._fences = []
+            self._post_fence_text = ""
+            return
+
+        # Extract pre-fence text (everything before first fence)
+        first_fence_start = matches[0].start()
+        self._pre_fence_text = content[:first_fence_start]
+
+        # Extract each fence as (language, code_content)
+        self._fences = []
+        last_pos = first_fence_start
+
+        for match in matches:
+            # Add any text between previous fence and this one to post-fence
+            # (This will be empty for the first fence since last_pos == first_fence_start)
+            between_text = content[last_pos : match.start()]
+            if between_text and self._fences:
+                # If there's text between fences, append it to post_fence_text
+                # and it will be part of the reconstruction
+                pass
+
+            fence_text = match.group(0)
+            # Parse the fence to extract language and code
+            lines = fence_text.split("\n")
+            first_line = lines[0]
+            language = first_line[3:].strip() if len(first_line) > 3 else ""
+
+            # Extract code content (lines between opening and closing ```)
+            if len(lines) > 2:
+                # Normal case: opening, content lines, closing
+                code_lines = lines[1:-1]
+                code_content = "\n".join(code_lines)
+            elif len(lines) == 2:
+                # Edge case: opening line, closing line (no content)
+                code_content = ""
+            else:
+                # Edge case: single line (malformed, but handle gracefully)
+                code_content = ""
+
+            self._fences.append((language, code_content))
+            last_pos = match.end()
+
+        # Extract post-fence text (everything after last fence)
+        self._post_fence_text = content[last_pos:]
+
+    @property
+    def content(self) -> str:
+        """Reconstruct content from pre-fence text, fences, and post-fence text.
+
+        Returns:
+            Reconstructed content string
+        """
+        parts = [self._pre_fence_text]
+
+        for language, code_content in self._fences:
+            fence_text = f"```{language}\n{code_content}\n```"
+            parts.append(fence_text)
+
+        parts.append(self._post_fence_text)
+
+        return "".join(parts)
+
+    @content.setter
+    def content(self, value: str):
+        """Parse and set content from value.
+
+        Args:
+            value: New content to parse and set
+        """
+        self._parse_content(value)
 
     @classmethod
     def matches(cls, content: str, **flags) -> bool:
@@ -410,22 +515,60 @@ class CodeFenceNode(Node):
         return "```" in content
 
     def modify(self, fn):
-        """Apply function to content and recurse to children."""
-        modified_content = fn(self.content)
+        """Apply function to pre/post fence text only, never to fence content.
+
+        Args:
+            fn: Function to apply to non-fence text
+
+        Returns:
+            New CodeFenceNode with modified pre/post text
+        """
+        # Apply fn only to pre and post fence text (not to fences themselves)
+        modified_pre = (
+            fn(self._pre_fence_text) if self._pre_fence_text else self._pre_fence_text
+        )
+        modified_post = (
+            fn(self._post_fence_text)
+            if self._post_fence_text
+            else self._post_fence_text
+        )
+
+        # Reconstruct content with modified pre/post but unchanged fences
+        parts = [modified_pre]
+        for language, code_content in self._fences:
+            fence_text = f"```{language}\n{code_content}\n```"
+            parts.append(fence_text)
+        parts.append(modified_post)
+
+        modified_content = "".join(parts)
+
+        # Recurse to children
         modified_children = [child.modify(fn) for child in self.children]
+
         return CodeFenceNode(modified_content, self.indent, modified_children)
 
     def __str__(self) -> str:
         """Format code fence content.
 
-        For now, just returns content as-is with bullet marker stripped if present.
-        Phase 2 will add proper code fence protection.
+        Returns content with indentation alignment and bullet marker stripped.
         """
-        content = self.content.strip()
+        content = self.content
 
-        # Remove bullet marker if present
-        if content.startswith("- "):
-            content = content[2:]
+        # Remove bullet marker if present from the entire content
+        # We need to handle this carefully to maintain proper indentation
+        if content.strip().startswith("- "):
+            # Find where the bullet marker starts
+            lines = content.split("\n")
+            first_line = lines[0]
+
+            # Remove bullet from first line
+            if first_line.strip().startswith("- "):
+                # Replace "- " with two spaces, then dedent everything
+                first_line = first_line.replace("- ", "  ", 1)
+                lines[0] = first_line
+                content = "\n".join(lines)
+                # Dedent the entire content while preserving fence indentation
+                content = _dedent_preserving_fences(content)
 
         return content
 
@@ -454,7 +597,7 @@ class PreserveListNode(Node):
         # Remove bullet marker if present
         if content.startswith("- "):
             content = content.replace("- ", "  ", 1)
-            content = textwrap.dedent(content)
+            content = _dedent_preserving_fences(content)
 
         # Format parent content: ensure it ends with a colon (no period)
         if not content.endswith(":"):
@@ -546,7 +689,7 @@ class RegularNode(Node):
         # Remove bullet marker if present, by making it a space so we can dedent
         if content.startswith("- "):
             content = content.replace("- ", "  ", 1)
-            content = textwrap.dedent(content)
+            content = _dedent_preserving_fences(content)
 
         # For regular bullets, process children in order maintaining sequence
         # This includes regular content that gets flattened and choice blocks inline
@@ -583,6 +726,95 @@ class RegularNode(Node):
                 i += 1
 
         return "\n\n".join(result_parts)
+
+
+def _dedent_preserving_fences(content: str) -> str:
+    """Dedent content while preserving relative indentation inside code fences.
+
+    Args:
+        content: The string to dedent
+
+    Returns:
+        Dedented string with code fence relative indentation preserved
+
+    Processing:
+        - Detects code fence boundaries (triple backticks)
+        - Uses minimum of fence and content indentation as baseline
+        - Dedents all content by the baseline indentation
+        - Preserves relative indentation within fence content
+        - Preserves blank line whitespace inside fences
+    """
+    if not content:
+        return content
+
+    # Check if there are any code fences
+    if "```" not in content:
+        # No fences, just dedent normally
+        return textwrap.dedent(content)
+
+    # Find the indentation of fence opening lines and content lines inside fences
+    lines = content.split("\n")
+    fence_indent = None
+    min_content_indent = None
+    in_fence = False
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            if not in_fence:
+                # Opening fence - record its indentation
+                indent = len(line) - len(line.lstrip())
+                if fence_indent is None or indent < fence_indent:
+                    fence_indent = indent
+            in_fence = not in_fence
+        elif in_fence and stripped:
+            # Content line inside fence - record its indentation
+            indent = len(line) - len(line.lstrip())
+            if min_content_indent is None or indent < min_content_indent:
+                min_content_indent = indent
+
+    # Determine dedent amount: use minimum of fence and content indentation
+    # This ensures we dedent by the fence baseline while preserving relative indentation
+    if fence_indent is not None and min_content_indent is not None:
+        dedent_amount = min(fence_indent, min_content_indent)
+    elif fence_indent is not None:
+        # If we only have fence markers (no content), use fence indentation
+        dedent_amount = fence_indent
+    elif min_content_indent is not None:
+        # If we have content but no fences (shouldn't happen), use content indentation
+        dedent_amount = min_content_indent
+    else:
+        # No fences or content found, use minimum indent like textwrap.dedent
+        min_indent = None
+        for line in lines:
+            if line.strip():
+                indent = len(line) - len(line.lstrip())
+                if min_indent is None or indent < min_indent:
+                    min_indent = indent
+        dedent_amount = min_indent if min_indent is not None else 0
+
+    # If no indentation found, return as-is
+    if dedent_amount == 0:
+        return content
+
+    # Dedent all lines by dedent_amount
+    dedented_lines = []
+    for line in lines:
+        if line.strip():
+            # Remove dedent_amount spaces from the beginning
+            if len(line) >= dedent_amount and line[:dedent_amount].strip() == "":
+                dedented_lines.append(line[dedent_amount:])
+            else:
+                # Line has less than dedent_amount spaces, just strip leading whitespace
+                dedented_lines.append(line.lstrip())
+        else:
+            # For blank lines, preserve up to dedent_amount spaces if they exist
+            if len(line) >= dedent_amount:
+                dedented_lines.append(line[dedent_amount:])
+            else:
+                dedented_lines.append(line)
+
+    return "\n".join(dedented_lines)
 
 
 def is_node_object(obj) -> bool:
@@ -682,20 +914,39 @@ def _collect_bullet_groups(lines: list[str]) -> list[tuple[int, str]]:
     Processing:
         - Skips empty lines
         - Groups lines without bullet markers as continuations of previous bullet
+        - Handles code fences: content between ``` markers is always continuation
         - Normalizes indentation after collecting all lines for a bullet
     """
     bullet_groups = []
     current_indent = None
     current_content_lines = []
+    in_code_fence = False
 
     for line in lines:
         if not line.strip():
-            # Skip empty lines entirely
+            # Skip empty lines entirely (unless inside code fence)
+            if in_code_fence and current_content_lines:
+                current_content_lines.append(line)
+            continue
+
+        # Check if this line contains a fence marker
+        stripped_content = line.strip()
+        if stripped_content.startswith("```"):
+            # Toggle fence state
+            in_code_fence = not in_code_fence
+            # This line is always a continuation
+            if current_content_lines:
+                current_content_lines.append(line)
+            continue
+
+        # If we're inside a code fence, always treat as continuation
+        if in_code_fence:
+            if current_content_lines:
+                current_content_lines.append(line)
             continue
 
         # Calculate indentation
         indent = len(line) - len(line.lstrip())
-        stripped_content = line.strip()
         has_bullet = _has_bullet_marker(stripped_content)
 
         if has_bullet:
@@ -792,6 +1043,9 @@ def _normalize_bullet_content(content: str, bullet_indent: int) -> str:
     Dedents continuation lines by the bullet's indentation level while
     maintaining minimum indentation equal to the bullet marker length.
 
+    Special handling for code fences: dedents fence content relative to
+    the fence line itself, not the bullet marker minimum.
+
     Args:
         content: The bullet content to normalize
         bullet_indent: The indentation level of the bullet (in spaces)
@@ -826,19 +1080,68 @@ def _normalize_bullet_content(content: str, bullet_indent: int) -> str:
     first_line = lines[0]
     continuation_lines = lines[1:]
 
-    # Normalize each continuation line
+    # Normalize each continuation line, with special handling for code fences
     normalized_lines = [first_line]
+    in_code_fence = False
+    fence_base_indent = None
+    first_content_indent = None  # Track first content line indent inside fence
+
     for line in continuation_lines:
-        if line.strip():
-            # Calculate current indentation
-            current_indent = len(line) - len(line.lstrip())
-            # Dedent by bullet indent, but maintain minimum of bullet marker length
-            new_indent = max(current_indent - bullet_indent, bullet_marker_len)
-            # Reconstruct line with new indentation
-            normalized_lines.append(" " * new_indent + line.lstrip())
+        stripped = line.strip()
+
+        # Check for fence markers
+        if stripped.startswith("```"):
+            if not in_code_fence:
+                # Opening fence - record the base indent for this fence
+                current_indent = len(line) - len(line.lstrip())
+                fence_base_indent = current_indent
+                first_content_indent = None  # Reset for new fence
+            else:
+                # Closing fence - reset first_content_indent
+                first_content_indent = None
+            in_code_fence = not in_code_fence
+
+            # Process fence line normally
+            if stripped:
+                current_indent = len(line) - len(line.lstrip())
+                new_indent = max(current_indent - bullet_indent, bullet_marker_len)
+                normalized_lines.append(" " * new_indent + line.lstrip())
+            else:
+                normalized_lines.append(line)
+        elif in_code_fence and fence_base_indent is not None:
+            # Inside fence - calculate relative indent from fence base
+            if stripped:
+                current_indent = len(line) - len(line.lstrip())
+                # Track first content line indent to establish baseline
+                if first_content_indent is None:
+                    first_content_indent = current_indent
+                # Calculate relative indent from first content line
+                # This preserves the indentation structure within the fence content
+                relative_indent = current_indent - first_content_indent
+                # Apply normalization: dedent by bullet indent, preserve relative structure
+                # Adjust relative indent when first content is indented beyond fence
+                if relative_indent > 0 and first_content_indent > fence_base_indent:
+                    # Lines more indented than first content: reduce by 1 to compensate
+                    # for the extra level of indentation when content doesn't align with fence
+                    relative_indent -= 1
+                new_indent = (first_content_indent - bullet_indent) + relative_indent
+                normalized_lines.append(" " * new_indent + line.lstrip())
+            else:
+                # Blank lines inside fence - preserve relative to first content line
+                if first_content_indent is not None:
+                    # Calculate how many spaces the blank line should have based on first content
+                    blank_line_indent = max(0, first_content_indent - bullet_indent)
+                    normalized_lines.append(" " * blank_line_indent)
+                else:
+                    normalized_lines.append(line)
         else:
-            # Preserve empty lines
-            normalized_lines.append(line)
+            # Regular continuation line
+            if stripped:
+                current_indent = len(line) - len(line.lstrip())
+                new_indent = max(current_indent - bullet_indent, bullet_marker_len)
+                normalized_lines.append(" " * new_indent + line.lstrip())
+            else:
+                normalized_lines.append(line)
 
     return "\n".join(normalized_lines)
 
@@ -900,43 +1203,86 @@ def transform_tree(nodes: list[NodeDict]) -> list[Node]:
             if key not in ["content", "indent", "children"]:
                 transformed_node[key] = node[key]
 
-        # Apply transformations to content
-        transformed_content = transformed_node["content"]
+        # Check if this is a code fence node - if so, convert it first and use modify()
+        content = transformed_node["content"]
+        has_code_fence = "```" in content
 
-        # Check for [[Choice]] blocks before removing markers
-        has_choice = "[[Choice]]" in transformed_content
+        if has_code_fence:
+            # For code fences, we need to detect markers BEFORE creating the node
+            # because markers like [details] affect which node type is created
+            transformed_content = transformed_node["content"]
 
-        # Remove TODO/DONE markers
-        transformed_content = re.sub(
-            r"\{\{\[\[(DONE|TODO)\]\]\}\}\s*", "", transformed_content
-        )
+            # Detect and remove [list] marker
+            has_list_marker, transformed_content = _detect_and_remove_list_marker(
+                transformed_content
+            )
+            if has_list_marker:
+                transformed_node["preserve_list"] = True
 
-        # Convert :: labels to **label:** format
-        transformed_content = _convert_double_colon_labels(transformed_content)
+            # Detect and remove [details] marker
+            has_details_marker, transformed_content = _detect_and_remove_details_marker(
+                transformed_content
+            )
+            if has_details_marker:
+                transformed_node["details_block"] = True
 
-        # Detect and remove [list] marker
-        has_list_marker, transformed_content = _detect_and_remove_list_marker(
-            transformed_content
-        )
-        if has_list_marker:
-            transformed_node["preserve_list"] = True
+            # Update content after marker removal
+            transformed_node["content"] = transformed_content
 
-        # Detect and remove [details] marker
-        has_details_marker, transformed_content = _detect_and_remove_details_marker(
-            transformed_content
-        )
-        if has_details_marker:
-            transformed_node["details_block"] = True
+            # For code fences, create the node first to protect fence content
+            # Then use modify() to apply transformations only to non-fence text
+            node_obj = dict_to_node(transformed_node)
 
-        transformed_node["content"] = transformed_content
+            # Define transformation function
+            def apply_transformations(text: str) -> str:
+                # Remove TODO/DONE markers
+                text = re.sub(r"\{\{\[\[(DONE|TODO)\]\]\}\}\s*", "", text)
+                # Convert :: labels to **label:** format
+                text = _convert_double_colon_labels(text)
+                return text
 
-        # Mark choice blocks
-        if has_choice:
-            transformed_node["type"] = "choice_block"
+            # Apply transformations via modify() (protects fence content)
+            node_obj = node_obj.modify(apply_transformations)
 
-        # Convert to Node object if appropriate
-        node_or_dict = dict_to_node(transformed_node)
-        result.append(node_or_dict)
+            result.append(node_obj)
+        else:
+            # For non-code-fence nodes, apply transformations normally
+            transformed_content = transformed_node["content"]
+
+            # Check for [[Choice]] blocks before removing markers
+            has_choice = "[[Choice]]" in transformed_content
+
+            # Remove TODO/DONE markers
+            transformed_content = re.sub(
+                r"\{\{\[\[(DONE|TODO)\]\]\}\}\s*", "", transformed_content
+            )
+
+            # Convert :: labels to **label:** format
+            transformed_content = _convert_double_colon_labels(transformed_content)
+
+            # Detect and remove [list] marker
+            has_list_marker, transformed_content = _detect_and_remove_list_marker(
+                transformed_content
+            )
+            if has_list_marker:
+                transformed_node["preserve_list"] = True
+
+            # Detect and remove [details] marker
+            has_details_marker, transformed_content = _detect_and_remove_details_marker(
+                transformed_content
+            )
+            if has_details_marker:
+                transformed_node["details_block"] = True
+
+            transformed_node["content"] = transformed_content
+
+            # Mark choice blocks
+            if has_choice:
+                transformed_node["type"] = "choice_block"
+
+            # Convert to Node object if appropriate
+            node_or_dict = dict_to_node(transformed_node)
+            result.append(node_or_dict)
 
     return result
 

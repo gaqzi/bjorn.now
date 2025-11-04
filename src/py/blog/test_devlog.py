@@ -392,6 +392,158 @@ code here
         assert result[0] == expected
 
 
+class TestCodeFenceNode:
+    """Test cases for CodeFenceNode protection against transformations."""
+
+    def test_code_fence_preserves_bullets_inside(self):
+        """Test that bullets inside code fences are not stripped."""
+        input_nodes = [
+            {
+                "content": "```plaintext\n- item one\n- item two\n```",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        # CodeFenceNode should be created and bullets should remain unchanged
+        expected = CodeFenceNode(
+            content="```plaintext\n- item one\n- item two\n```",
+            indent=0,
+            children=[],
+        )
+        assert result[0] == expected
+
+        # Verify formatting also preserves bullets
+        formatted = format_tree(result)
+        assert "- item one" in formatted
+        assert "- item two" in formatted
+
+    def test_code_fence_preserves_numbered_lists_inside(self):
+        """Test that numbered lists inside code fences are not modified."""
+        input_nodes = [
+            {
+                "content": "```plaintext\n1. First\n2. Second\n```",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        expected = CodeFenceNode(
+            content="```plaintext\n1. First\n2. Second\n```",
+            indent=0,
+            children=[],
+        )
+        assert result[0] == expected
+
+        # Verify formatting preserves numbered lists
+        formatted = format_tree(result)
+        assert "1. First" in formatted
+        assert "2. Second" in formatted
+
+    def test_code_fence_preserves_double_colon_inside(self):
+        """Test that :: inside code fences is not converted to **Label:**."""
+        input_nodes = [
+            {
+                "content": "```python\nLabel:: value\nAnother:: thing\n```",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        expected = CodeFenceNode(
+            content="```python\nLabel:: value\nAnother:: thing\n```",
+            indent=0,
+            children=[],
+        )
+        assert result[0] == expected
+
+        # Verify formatting preserves :: syntax
+        formatted = format_tree(result)
+        assert "Label:: value" in formatted
+        assert "Another:: thing" in formatted
+
+    def test_code_fence_preserves_markers_inside(self):
+        """Test that markers like {{[[DONE]]}} inside code fences are not removed."""
+        input_nodes = [
+            {
+                "content": "```plaintext\n{{[[DONE]]}} task completed\n{{[[TODO]]}} task pending\n```",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        expected = CodeFenceNode(
+            content="```plaintext\n{{[[DONE]]}} task completed\n{{[[TODO]]}} task pending\n```",
+            indent=0,
+            children=[],
+        )
+        assert result[0] == expected
+
+        # Verify formatting preserves markers
+        formatted = format_tree(result)
+        assert "{{[[DONE]]}}" in formatted
+        assert "{{[[TODO]]}}" in formatted
+
+    def test_code_fence_multiple_fences(self):
+        """Test that multiple code fences are preserved independently."""
+        input_nodes = [
+            {
+                "content": "```python\nprint('first')\n```",
+                "indent": 0,
+                "children": [],
+            },
+            {
+                "content": "Some text between",
+                "indent": 0,
+                "children": [],
+            },
+            {
+                "content": "```javascript\nconsole.log('second');\n```",
+                "indent": 0,
+                "children": [],
+            },
+        ]
+        result = transform_tree(input_nodes)
+
+        # All fences should be preserved
+        assert isinstance(result[0], CodeFenceNode)
+        assert isinstance(result[1], RegularNode)
+        assert isinstance(result[2], CodeFenceNode)
+
+        assert "print('first')" in result[0].content
+        assert "console.log('second')" in result[2].content
+
+    def test_code_fence_indentation_alignment_only(self):
+        """Test that only leading whitespace is adjusted, relative indentation preserved."""
+        input_nodes = [
+            {
+                "content": "```python\ndef hello():\n    print('hi')\n        nested_more\n```",
+                "indent": 4,
+                "children": [],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        expected = CodeFenceNode(
+            content="```python\ndef hello():\n    print('hi')\n        nested_more\n```",
+            indent=4,
+            children=[],
+        )
+        assert result[0] == expected
+
+        # Verify formatting adjusts leading indentation but preserves relative indentation
+        formatted = format_tree(result)
+        # The internal relative indentation should be preserved
+        lines = formatted.split("\n")
+        # Find the lines with content (not the fence markers)
+        content_lines = [
+            l for l in lines if l.strip() and not l.strip().startswith("```")
+        ]
+        if len(content_lines) >= 2:
+            # Check that relative indentation is preserved
+            assert "    print('hi')" in formatted  # 4 spaces
+            assert "        nested_more" in formatted  # 8 spaces
+
+
 class TestFormatTree:
     """Test cases for format_tree function."""
 
@@ -1217,8 +1369,13 @@ def test_process() -> None:
             - Third
     - And an LLM plan to review: [details]
       ```text plain
-       Line 1
-       Line 2
+       1. First thing to do
+          - Detail 1
+          - Detail 2
+       2. Second thing
+          - Detail 3
+      
+       Even more deets here.
       ```
 """
 
@@ -1276,8 +1433,13 @@ Keep these child bullets:
 <summary>And an LLM plan to review:</summary>
 
 ```plaintext
- Line 1
- Line 2
+ 1. First thing to do
+   - Detail 1
+   - Detail 2
+ 2. Second thing
+   - Detail 3
+ 
+ Even more deets here.
 ```
 </details>
 """
