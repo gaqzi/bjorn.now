@@ -5,6 +5,7 @@ resources/
 
 # Python sources
 src/py/blog.egg-info/
+__pycache__/
 
 # Ignore local machine settings
 .claude/settings.local.json
