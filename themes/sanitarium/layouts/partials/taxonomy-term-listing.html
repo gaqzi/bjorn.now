@@ -34,37 +34,44 @@
     {{/* Sort posts in ascending order (earliest first) */}}
     {{ $posts := .Page.Pages.ByDate }}
 
-    {{/* Group posts by date with date markers */}}
-    {{ $lastDate := "" -}}
-    {{ $openDay := false -}}
-    {{ range $posts }}
-        {{ $currentDate := .Date.Format "2006-01-02" -}}
-        {{ if ne $currentDate $lastDate -}}
-            {{ with $openDay }}</section>{{ end -}}
-            <section class="day">
-                {{/* Check if daily taxonomy page exists for this date */}}
-                {{ $dailyPageExists := false -}}
-                {{ if site.Taxonomies.daily -}}
-                    {{ $dailyTerm := index site.Taxonomies.daily $currentDate -}}
-                    {{ if $dailyTerm -}}
-                        {{ $dailyPageExists = true -}}
+    {{/* Group posts by date with date markers (except for daily pages where date is the title) */}}
+    {{ if ne .TaxonomyName "daily" }}
+        {{ $lastDate := "" -}}
+        {{ $openDay := false -}}
+        {{ range $posts }}
+            {{ $currentDate := .Date.Format "2006-01-02" -}}
+            {{ if ne $currentDate $lastDate -}}
+                {{ with $openDay }}</section>{{ end -}}
+                <section class="day">
+                    {{/* Check if daily taxonomy page exists for this date */}}
+                    {{ $dailyPageExists := false -}}
+                    {{ if site.Taxonomies.daily -}}
+                        {{ $dailyTerm := index site.Taxonomies.daily $currentDate -}}
+                        {{ if $dailyTerm -}}
+                            {{ $dailyPageExists = true -}}
+                        {{ end -}}
                     {{ end -}}
-                {{ end -}}
 
-                {{ if $dailyPageExists -}}
-                    <h1 class="day__date">
-                        <a href="{{ printf "/daily/%s/" $currentDate | relURL }}" class="daily-link">{{ .Date.Format "02 January, 2006" }}</a>
-                    </h1>
-                {{ else -}}
-                    <h1 class="day__date">{{ .Date.Format "02 January, 2006" }}</h1>
-                {{ end -}}
-            {{ $openDay = true -}}
-            {{ $lastDate = $currentDate -}}
-        {{ end -}}
+                    {{ if $dailyPageExists -}}
+                        <h1 class="day__date">
+                            <a href="{{ printf "/daily/%s/" $currentDate | relURL }}" class="daily-link">{{ .Date.Format "02 January, 2006" }}</a>
+                        </h1>
+                    {{ else -}}
+                        <h1 class="day__date">{{ .Date.Format "02 January, 2006" }}</h1>
+                    {{ end -}}
+                {{ $openDay = true -}}
+                {{ $lastDate = $currentDate -}}
+            {{ end -}}
 
-        {{ partial "summary.html" . }}
+            {{ partial "summary.html" . }}
+        {{ end }}
+        {{ with $openDay }}</section>{{ end -}}
+    {{ else }}
+        {{/* For daily pages, just show posts without date markers */}}
+        {{ range $posts }}
+            {{ partial "summary.html" . }}
+        {{ end }}
     {{ end }}
-    {{ with $openDay }}</section>{{ end -}}
 
     {{/* Prefetch first 3 posts for performance */}}
     {{ range first 3 $posts }}
