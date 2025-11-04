@@ -280,6 +280,41 @@ def _convert_double_colon_labels(content: str) -> str:
     return re.sub(pattern, replacement, content)
 
 
+def _collect_and_format_numbered_items(
+    nodes: list[dict], start_index: int
+) -> tuple[str, int]:
+    """Collect and format consecutive numbered list items.
+
+    Collects consecutive numbered list items starting from start_index,
+    formats them using _format_numbered_list_item, and returns the
+    formatted result along with the next index to process.
+
+    Args:
+        nodes: List of nodes to process
+        start_index: Index to start collecting from
+
+    Returns:
+        Tuple of (formatted_string, next_index) where:
+        - formatted_string: Joined and rstripped numbered items (empty string if none)
+        - next_index: Index of first non-numbered-list item after the sequence
+    """
+    numbered_items = []
+    i = start_index
+
+    # Collect consecutive numbered list items
+    while i < len(nodes) and _is_numbered_list_item(nodes[i]):
+        formatted = _format_numbered_list_item(nodes[i])
+        if formatted:
+            numbered_items.append(formatted)
+        i += 1
+
+    # Join numbered items: pure concatenation preserves all newlines
+    # (items with children end with \n\n, items without end with \n)
+    joined = "".join(numbered_items).rstrip("\n")
+
+    return joined, i
+
+
 def format_tree(nodes: list[dict]) -> str:
     """Format tree into final markdown output.
 
@@ -299,15 +334,7 @@ def format_tree(nodes: list[dict]) -> str:
         # Check if this is a numbered list item
         if _is_numbered_list_item(node):
             # Collect consecutive numbered list items
-            numbered_items = []
-            while i < len(nodes) and _is_numbered_list_item(nodes[i]):
-                formatted = _format_numbered_list_item(nodes[i])
-                if formatted:
-                    numbered_items.append(formatted)
-                i += 1
-            # Join numbered items: pure concatenation preserves all newlines
-            # (items with children end with \n\n, items without end with \n)
-            joined = "".join(numbered_items).rstrip("\n")
+            joined, i = _collect_and_format_numbered_items(nodes, i)
             if joined:
                 result.append(joined)
         else:
@@ -585,14 +612,7 @@ def _format_node(node: dict, is_choice_child: bool = False) -> str:
         # Check if this starts a sequence of numbered list items
         if _is_numbered_list_item(child):
             # Collect consecutive numbered list items
-            numbered_items = []
-            while i < len(children) and _is_numbered_list_item(children[i]):
-                formatted = _format_numbered_list_item(children[i])
-                if formatted:
-                    numbered_items.append(formatted)
-                i += 1
-            # Join numbered items without blank lines
-            joined = "".join(numbered_items).rstrip("\n")
+            joined, i = _collect_and_format_numbered_items(children, i)
             if joined:
                 result_parts.append(joined)
         else:
