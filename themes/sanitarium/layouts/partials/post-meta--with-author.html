@@ -3,13 +3,17 @@
     {{ if (gt (len $authors) 0) -}}
         {{ $firstAuthor := index $authors 0 -}}
         {{ $authorData := index .Site.Data.authors $firstAuthor -}}
-        {{ if and (isset $authorData "avatar") (fileExists (printf "static%s" $authorData.avatar)) -}}
-            <div class="meta-avatar">
-                <a href="{{ $authorData.customPage | default (printf "/authors/%s/" ($firstAuthor | urlize)) }}">
-                    <img src="{{ $authorData.avatar }}" alt="{{ $authorData.displayName }}" class="author-avatar"
-                         width="40" height="40">
-                </a>
-            </div>
+        {{ if isset $authorData "avatar" -}}
+            {{ $avatarResource := resources.Get (printf "authors/%s" $authorData.avatar) -}}
+            {{ if $avatarResource -}}
+                {{ $avatar := $avatarResource.Resize "80x80" -}}
+                <div class="meta-avatar">
+                    <a href="{{ $authorData.customPage | default (printf "/authors/%s/" ($firstAuthor | urlize)) }}">
+                        <img src="{{ $avatar.RelPermalink }}" alt="{{ $authorData.displayName }}" class="author-avatar"
+                             width="40" height="40" loading="lazy">
+                    </a>
+                </div>
+            {{ end -}}
         {{ end -}}
     {{ end -}}
     <div class="meta-content">

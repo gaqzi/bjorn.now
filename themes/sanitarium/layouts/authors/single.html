@@ -13,12 +13,16 @@
         {{ if $author }}
             <div class="author-info">
                 {{ with $author.avatar }}
-                    <figure>
-                        <img src="{{ . }}" alt="{{ $author.displayName }}" class="author-avatar" loading="lazy">
-                        {{ with $author.avatar_credit -}}
-                            <p>Photo: {{ . | safeHTML }}</p>
-                        {{ end -}}
-                    </figure>
+                    {{ $avatarResource := resources.Get (printf "authors/%s" .) -}}
+                    {{ if $avatarResource -}}
+                        {{ $avatar := $avatarResource.Resize "400x400" -}}
+                        <figure>
+                            <img src="{{ $avatar.RelPermalink }}" alt="{{ $author.displayName }}" class="author-avatar" loading="lazy">
+                            {{ with $author.avatar_credit -}}
+                                <p>Photo: {{ . | safeHTML }}</p>
+                            {{ end -}}
+                        </figure>
+                    {{ end -}}
                 {{ end }}
                 
                 <div class="author-details">
