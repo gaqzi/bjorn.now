@@ -178,6 +178,27 @@ Full-width code block without copy button
     - `meta-social.html` - Social media meta tags
     - `banner-image.html` - Banner image detection
     - `feeds.html` - RSS feed links
+  - `summary/` - Content-type specific rendering (with-title, without-title, unconfigured)
+  - `post-list/` - List rendering variants (with-dates, without-dates)
+
+#### Partial Organization Patterns
+
+**Dispatcher Pattern:** Route to sub-partials based on conditions
+```go
+{{/* partials/summary.html */}}
+{{ $template := cond (in (slice "blog" "crumb") .Section) "with-title" "without-title" }}
+{{ partial (printf "summary/%s.html" $template) . }}
+```
+
+**Composition Pattern:** Include multiple focused sub-partials
+```go
+{{/* partials/head.html */}}
+{{ partial "head/meta-basic.html" . }}
+{{ partial "head/css.html" . }}
+{{ partial "head/feeds.html" . }}
+```
+
+Use sub-partials when logic is complex/duplicated across templates. Each sub-partial focuses on one variant or aspect. Main templates stay clean and declarative.
 
 ### Shortcodes
 - `shortcodes/define.html`, `shortcodes/img.html`
