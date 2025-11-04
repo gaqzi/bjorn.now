@@ -273,6 +273,77 @@ code here
         assert result[0]["children"][0]["content"] == "- Child:"
         assert result[0]["children"][0].get("preserve_list") is True
 
+    def test_detect_details_marker(self):
+        """Test detecting and removing [details] marker from content."""
+        input_nodes = [
+            {
+                "content": "- LLM plan to review: [details]",
+                "indent": 0,
+                "children": [
+                    {
+                        "content": "```text\nplan content\n```",
+                        "indent": 4,
+                        "children": [],
+                    }
+                ],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        assert result[0]["content"] == "- LLM plan to review:"
+        assert result[0].get("details_block") is True
+        assert len(result[0]["children"]) == 1  # Children preserved
+
+    def test_details_marker_with_trailing_spaces(self):
+        """Test [details] marker removal with trailing spaces."""
+        input_nodes = [
+            {
+                "content": "- Text here: [details]  ",
+                "indent": 0,
+                "children": [],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        assert result[0]["content"] == "- Text here:"
+        assert result[0].get("details_block") is True
+
+    def test_details_marker_without_colon(self):
+        """Test [details] marker when content doesn't end with colon."""
+        input_nodes = [
+            {
+                "content": "- Some text [details]",
+                "indent": 0,
+                "children": [
+                    {"content": "- Child content", "indent": 4, "children": []}
+                ],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        assert result[0]["content"] == "- Some text"
+        assert result[0].get("details_block") is True
+
+    def test_nested_details_markers(self):
+        """Test multiple levels with [details] markers."""
+        input_nodes = [
+            {
+                "content": "- Parent: [details]",
+                "indent": 0,
+                "children": [
+                    {
+                        "content": "- Child: [details]",
+                        "indent": 4,
+                        "children": [
+                            {"content": "- Grandchild", "indent": 8, "children": []}
+                        ],
+                    }
+                ],
+            }
+        ]
+        result = transform_tree(input_nodes)
+        assert result[0]["content"] == "- Parent:"
+        assert result[0].get("details_block") is True
+        assert result[0]["children"][0]["content"] == "- Child:"
+        assert result[0]["children"][0].get("details_block") is True
+
 
 class TestFormatTree:
     """Test cases for format_tree function."""
@@ -844,6 +915,121 @@ class TestFormatTree:
         )
         assert format_tree(input_nodes) == expected
 
+    def test_format_details_block_simple(self):
+        """Test formatting a simple details block with summary tag."""
+        input_nodes = [
+            {
+                "content": "- Plan to review:",
+                "indent": 0,
+                "children": [
+                    {"content": "- Point one", "indent": 4, "children": []},
+                    {"content": "- Point two", "indent": 4, "children": []},
+                ],
+                "details_block": True,
+            }
+        ]
+        expected = (
+            "<details>\n"
+            "<summary>Plan to review:</summary>\n"
+            "\n"
+            "Point one.\n"
+            "\n"
+            "Point two.\n"
+            "</details>\n"
+        )
+        assert format_tree(input_nodes) == expected
+
+    def test_format_details_block_no_children(self):
+        """Test formatting details block with no children (edge case)."""
+        input_nodes = [
+            {
+                "content": "- Empty details:",
+                "indent": 0,
+                "children": [],
+                "details_block": True,
+            }
+        ]
+        expected = "<details>\n<summary>Empty details:</summary>\n</details>\n"
+        assert format_tree(input_nodes) == expected
+
+    def test_format_details_block_summary_without_colon(self):
+        """Test details block when summary doesn't end with colon."""
+        input_nodes = [
+            {
+                "content": "- Click to expand",
+                "indent": 0,
+                "children": [
+                    {"content": "- Hidden content", "indent": 4, "children": []},
+                ],
+                "details_block": True,
+            }
+        ]
+        expected = (
+            "<details>\n"
+            "<summary>Click to expand</summary>\n"
+            "\n"
+            "Hidden content.\n"
+            "</details>\n"
+        )
+        assert format_tree(input_nodes) == expected
+
+    def test_format_details_block_with_code(self):
+        """Test formatting details block containing code fences."""
+        input_nodes = [
+            {
+                "content": "- Implementation plan:",
+                "indent": 0,
+                "children": [
+                    {
+                        "content": "```python\ndef hello():\n    print('hi')\n```",
+                        "indent": 4,
+                        "children": [],
+                    }
+                ],
+                "details_block": True,
+            }
+        ]
+        expected = (
+            "<details>\n"
+            "<summary>Implementation plan:</summary>\n"
+            "\n"
+            "```python\n"
+            "def hello():\n"
+            "    print('hi')\n"
+            "```\n"
+            "</details>\n"
+        )
+        assert format_tree(input_nodes) == expected
+
+    def test_format_details_with_mixed_content(self):
+        """Test details block with various child node types."""
+        input_nodes = [
+            {
+                "content": "- Analysis:",
+                "indent": 0,
+                "children": [
+                    {"content": "- Regular text", "indent": 4, "children": []},
+                    {"content": "```python\ncode\n```", "indent": 4, "children": []},
+                    {"content": "- More text", "indent": 4, "children": []},
+                ],
+                "details_block": True,
+            }
+        ]
+        expected = (
+            "<details>\n"
+            "<summary>Analysis:</summary>\n"
+            "\n"
+            "Regular text.\n"
+            "\n"
+            "```python\n"
+            "code\n"
+            "```\n"
+            "\n"
+            "More text.\n"
+            "</details>\n"
+        )
+        assert format_tree(input_nodes) == expected
+
 
 class TestMain:
     """Test cases for main CLI function."""
@@ -994,6 +1180,11 @@ def test_process() -> None:
         - First
         - Second
             - Third
+    - And an LLM plan to review: [details]
+      ```text plain
+       Line 1
+       Line 2
+      ```
 """
 
     assert process(input_text) == (
@@ -1045,5 +1236,14 @@ Keep these child bullets:
 - First
 - Second
     - Third
+
+<details>
+<summary>And an LLM plan to review:</summary>
+
+```plaintext
+ Line 1
+ Line 2
+```
+</details>
 """
     )

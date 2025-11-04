@@ -16,6 +16,7 @@ class Node(TypedDict):
         children: List of child nodes
         type: Optional node type marker (e.g., "choice_block")
         preserve_list: Optional flag to preserve list structure instead of flattening
+        details_block: Optional flag to format as HTML details block
     """
 
     content: str
@@ -23,6 +24,7 @@ class Node(TypedDict):
     children: list["Node"]
     type: NotRequired[str]
     preserve_list: NotRequired[bool]
+    details_block: NotRequired[bool]
 
 
 def _collect_bullet_groups(lines: list[str]) -> list[tuple[int, str]]:
@@ -283,6 +285,13 @@ def transform_tree(nodes: list[Node]) -> list[Node]:
         if has_list_marker:
             transformed_node["preserve_list"] = True
 
+        # Detect and remove [details] marker
+        has_details_marker, transformed_content = _detect_and_remove_details_marker(
+            transformed_content
+        )
+        if has_details_marker:
+            transformed_node["details_block"] = True
+
         transformed_node["content"] = transformed_content
 
         # Mark choice blocks
@@ -317,6 +326,23 @@ def _detect_and_remove_list_marker(content: str) -> tuple[bool, str]:
     if re.search(r"\[list\]\s*$", content):
         # Remove [list] and trailing spaces
         cleaned = re.sub(r"\s*\[list\]\s*$", "", content)
+        return True, cleaned
+    return False, content
+
+
+def _detect_and_remove_details_marker(content: str) -> tuple[bool, str]:
+    """Detect and remove [details] marker from content.
+
+    Returns:
+        Tuple of (has_details_marker, cleaned_content)
+        - has_details_marker: True if [details] marker was found and removed
+        - cleaned_content: Content with [details] marker and trailing spaces removed
+    """
+    # Check if content ends with [details] (possibly with trailing spaces)
+    # Matches: [details] followed by optional spaces, then either newline or end of string
+    if re.search(r"\[details\]\s*(?:\n|$)", content):
+        # Remove [details] and all trailing spaces (including before newline if present)
+        cleaned = re.sub(r"\s*\[details\]\s*$", "", content, flags=re.MULTILINE)
         return True, cleaned
     return False, content
 
@@ -710,6 +736,59 @@ def _format_preserve_list_node(node: Node) -> str:
         return parent_formatted
 
 
+def _format_details_node(node: Node) -> str:
+    """Format a node with details_block flag as HTML details/summary.
+
+    Args:
+        node: A node with details_block == True
+
+    Returns:
+        Formatted HTML details block with summary and flattened children
+    """
+    content = node.get("content", "").strip()
+    children = node.get("children", [])
+
+    # Remove bullet marker if present
+    if content.startswith("- "):
+        content = content.replace("- ", "  ", 1)
+        content = textwrap.dedent(content)
+
+    # Split content into first line (summary) and continuation lines
+    lines = content.split("\n", 1)
+    summary_content = lines[0].strip()
+    continuation_content = lines[1] if len(lines) > 1 else ""
+
+    # Format children - flatten them like regular bullets
+    child_parts = []
+
+    # First, add any continuation lines from the content itself
+    if continuation_content.strip():
+        # Process continuation lines as if they were child content
+        # Strip leading indentation and format them
+        continuation_lines = continuation_content.split("\n")
+        continuation_text = "\n".join(continuation_lines).strip()
+        # Don't add punctuation for code blocks or already formatted content
+        if not continuation_text.startswith("```"):
+            continuation_text = _add_punctuation(continuation_text)
+        child_parts.append(continuation_text)
+
+    # Then add actual child nodes
+    for child in children:
+        formatted_child = _format_node(child)
+        if formatted_child:
+            child_parts.append(formatted_child)
+
+    # Build the details block
+    if child_parts:
+        # Join children with blank lines (double newline separation)
+        children_formatted = "\n\n".join(child_parts)
+        # Structure: <details>\n<summary>content</summary>\n\nchildren\n</details>
+        return f"<details>\n<summary>{summary_content}</summary>\n\n{children_formatted}\n</details>"
+    else:
+        # No children case
+        return f"<details>\n<summary>{summary_content}</summary>\n</details>"
+
+
 def _format_regular_node(node: Node) -> str:
     """Format a regular bullet node with flattening.
 
@@ -774,6 +853,7 @@ def _format_node(node: Node, is_choice_child: bool = False) -> str:
     - _format_quote_node: For quote blocks (content starts with "- > ")
     - _format_choice_node: For choice blocks (type == "choice_block")
     - _format_preserve_list_node: For nodes with preserve_list flag
+    - _format_details_node: For details blocks (details_block == True)
     - _format_regular_node: For regular bullets with flattening
     """
     content = node.get("content", "").strip()
@@ -785,6 +865,8 @@ def _format_node(node: Node, is_choice_child: bool = False) -> str:
         return _format_choice_node(node)
     if node.get("preserve_list"):
         return _format_preserve_list_node(node)
+    if node.get("details_block"):
+        return _format_details_node(node)
     return _format_regular_node(node)
 
 
@@ -837,8 +919,8 @@ def process(content: str) -> str:
     transformed = transform_tree(parsed)
     formatted = format_tree(transformed)
 
-    # Convert 'plain text' code fence to 'plaintext'
-    formatted = re.sub(r"```plain text", "```plaintext", formatted)
+    # Convert 'plain text' or 'text plain' code fence to 'plaintext'
+    formatted = re.sub(r"```(?:plain text|text plain)", "```plaintext", formatted)
 
     # Preserve leading newline from input
     if content.startswith("\n"):
