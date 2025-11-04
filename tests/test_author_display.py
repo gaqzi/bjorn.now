@@ -22,7 +22,9 @@ class TestAuthorDisplay:
         author_avatar = soup.find("img", class_="author-avatar")
         assert author_avatar is not None, "Individual post should display author avatar"
 
-        expected_src = "/img/authors/bj%c3%b6rn-2.jpg"  # URL-encoded björn
+        expected_src = (
+            "/authors/bj%C3%B6rn-2_hu_61196dca2776a203.jpg"  # URL-encoded björn
+        )
         assert (
             author_avatar.get("src") == expected_src
         ), f"Avatar src should be '{expected_src}' but was '{author_avatar.get('src')}'"
