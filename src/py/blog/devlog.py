@@ -4,11 +4,12 @@ import argparse
 import re
 import sys
 import textwrap
+from abc import ABC, abstractmethod
 from typing import NotRequired, TypedDict
 
 
-class Node(TypedDict):
-    """Represents a node in the parsed tree structure.
+class NodeDict(TypedDict):
+    """Represents a node in the parsed tree structure (dict-based).
 
     Fields:
         content: The text content of the node (bullet marker may be included)
@@ -21,10 +22,290 @@ class Node(TypedDict):
 
     content: str
     indent: int
-    children: list["Node"]
+    children: list["NodeDict"]
     type: NotRequired[str]
     preserve_list: NotRequired[bool]
     details_block: NotRequired[bool]
+
+
+class Node(ABC):
+    """Abstract base class for tree nodes."""
+
+    def __init__(self, content: str, indent: int, children: list):
+        """Initialize a node.
+
+        Args:
+            content: The text content of the node (bullet marker may be included)
+            indent: Indentation level in spaces (0, 4, 8, etc.)
+            children: List of child nodes (can be Node objects or dicts)
+        """
+        self.content = content
+        self.indent = indent
+        self.children = children
+
+    @abstractmethod
+    def modify(self, fn):
+        """Apply a function to this node's content and recurse to children.
+
+        Args:
+            fn: Function to apply to content
+
+        Returns:
+            Modified node
+        """
+        pass
+
+    @abstractmethod
+    def __str__(self) -> str:
+        """Format this node as a string.
+
+        Returns:
+            Formatted string representation
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def matches(cls, content: str, **flags) -> bool:
+        """Check if this node type matches the given content and flags.
+
+        Args:
+            content: The node content
+            **flags: Additional flags (e.g., type, preserve_list, details_block)
+
+        Returns:
+            True if this node type should handle this content
+        """
+        pass
+
+    def __eq__(self, other) -> bool:
+        """Compare two nodes for equality.
+
+        Args:
+            other: The other object to compare with
+
+        Returns:
+            True if both nodes are the same type and have equal attributes
+        """
+        if type(self) != type(other):
+            return False
+        return self.__dict__ == other.__dict__
+
+    def __repr__(self) -> str:
+        """Return a detailed string representation for debugging.
+
+        Returns:
+            String representation including class name and attributes
+        """
+        return f"{self.__class__.__name__}(content={self.content!r}, indent={self.indent!r}, children={self.children!r})"
+
+
+class ChoiceNode(Node):
+    """Node representing a choice block with [[Choice]] marker."""
+
+    @classmethod
+    def matches(cls, content: str, **flags) -> bool:
+        """Match nodes with type == "choice_block"."""
+        return flags.get("type") == "choice_block"
+
+    def modify(self, fn):
+        """Apply function to content and recurse to children."""
+        modified_content = fn(self.content)
+        modified_children = []
+        for child in self.children:
+            if is_node_object(child):
+                modified_children.append(child.modify(fn))
+            else:
+                # Handle dict children
+                modified_child = dict(child)
+                modified_child["content"] = fn(child.get("content", ""))
+                if child.get("children"):
+                    modified_child["children"] = [
+                        c.modify(fn) if is_node_object(c) else c
+                        for c in child["children"]
+                    ]
+                modified_children.append(modified_child)
+        return ChoiceNode(modified_content, self.indent, modified_children)
+
+    def __str__(self) -> str:
+        """Format choice block with nested structure preserved."""
+        content = self.content.strip()
+
+        # Remove bullet marker if present, by making it a space so we can dedent
+        if content.startswith("- "):
+            content = content.replace("- ", "  ", 1)
+            content = textwrap.dedent(content)
+
+        # Convert [[Choice]] to **Choice:**
+        content = re.sub(r"\[\[Choice\]\]", "**Choice:**", content)
+
+        # Format the title with "- " prefix
+        formatted_parts = ["- " + content]
+
+        # Format children with proper indentation
+        for child in self.children:
+            formatted_child = self._format_choice_child(child, indent_level=4)
+            if formatted_child:
+                formatted_parts.append(formatted_child)
+
+        return "\n".join(formatted_parts)
+
+    def _format_choice_child(self, node, indent_level: int = 4) -> str:
+        """Format a child of a choice block recursively.
+
+        Args:
+            node: The node to format (can be Node object or dict)
+            indent_level: Current indentation level in spaces (4, 8, 12, etc.)
+
+        Rules:
+        - If content starts with "- ": format with "- " at current indentation
+        - If content doesn't start with "- ": format without bullet at current indentation
+        - Preserve content as-is (no automatic punctuation)
+        - For multi-line content with code blocks: indent continuation lines at indent_level + 2
+        - Recursively format children with indent_level + 4
+        """
+        # Handle both Node objects and dicts
+        if is_node_object(node):
+            content = node.content.strip()
+            children = node.children
+        else:
+            content = node.get("content", "").strip()
+            children = node.get("children", [])
+
+        # Check if content starts with "- "
+        has_bullet = content.startswith("- ")
+        if has_bullet:
+            content = content[2:]  # Remove "- " prefix
+
+        # Handle multi-line content (e.g., content with code blocks)
+        if "\n" in content:
+            lines = content.split("\n")
+            # Extract and format the multi-line content with proper indentation
+            formatted_content = self._format_multiline_choice_content(
+                lines, has_bullet, indent_level
+            )
+            formatted_parts = [formatted_content]
+        else:
+            # Single-line content
+            indent_str = " " * indent_level
+            if has_bullet:
+                formatted_parts = [indent_str + "- " + content]
+            else:
+                formatted_parts = [indent_str + content]
+
+        # Recursively format children
+        for child in children:
+            formatted_child = self._format_choice_child(child, indent_level + 4)
+            if formatted_child:
+                formatted_parts.append(formatted_child)
+
+        return "\n".join(formatted_parts)
+
+    def _format_multiline_choice_content(
+        self, lines: list[str], has_bullet: bool, indent_level: int
+    ) -> str:
+        """Format multi-line content for choice blocks with proper indentation.
+
+        Handles indentation of content that spans multiple lines (e.g., code blocks),
+        preserving relative indentation within the content while aligning with the
+        block's structure.
+
+        Args:
+            lines: The content lines to format (first line is the main content)
+            has_bullet: Whether the first line should have a bullet marker ("- ")
+            indent_level: Current indentation level in spaces (4, 8, 12, etc.)
+
+        Returns:
+            Formatted multi-line content as a single string with embedded newlines
+
+        Indentation Rules:
+            - First line gets indent_level (plus "- " if has_bullet)
+            - If has_bullet: continuation lines get indent_level + 2
+            - If no bullet: continuation lines get indent_level
+            - Relative indentation within the content is preserved (e.g., code blocks)
+            - Empty lines are preserved as-is
+        """
+        indent_str = " " * indent_level
+        formatted_lines = []
+
+        # Format first line with optional bullet marker
+        if has_bullet:
+            formatted_lines.append(indent_str + "- " + lines[0])
+            # When there's a bullet, continuation lines align 2 spaces after the "- "
+            continuation_indent = indent_level + 2
+        else:
+            formatted_lines.append(indent_str + lines[0])
+            # When there's no bullet, continuation lines use the same indentation
+            continuation_indent = indent_level
+
+        # Find minimum indentation in continuation lines to preserve relative indentation.
+        # This is critical for code blocks where relative indentation conveys structure.
+        continuation_lines = lines[1:]
+        leftmost_indent_in_content = None
+        for line in continuation_lines:
+            if line.strip():  # Only consider non-empty lines
+                current_indent = len(line) - len(line.lstrip())
+                if (
+                    leftmost_indent_in_content is None
+                    or current_indent < leftmost_indent_in_content
+                ):
+                    leftmost_indent_in_content = current_indent
+
+        # Format continuation lines, preserving their relative indentation
+        for line in continuation_lines:
+            stripped = line.lstrip()
+            if stripped:
+                # Calculate original indentation and preserve relative offset
+                original_indent = len(line) - len(stripped)
+                # relative_indent is the offset from the leftmost line
+                # (e.g., if leftmost has 4 spaces and this line has 8, relative_indent is 4)
+                relative_indent = original_indent - (leftmost_indent_in_content or 0)
+                formatted_lines.append(
+                    " " * (continuation_indent + relative_indent) + stripped
+                )
+            else:
+                # Preserve empty lines exactly as they are
+                formatted_lines.append(line)
+
+        return "\n".join(formatted_lines)
+
+
+def is_node_object(obj) -> bool:
+    """Check if an object is a Node instance (not a dict).
+
+    Args:
+        obj: The object to check
+
+    Returns:
+        True if obj is a Node instance, False otherwise
+    """
+    return isinstance(obj, Node)
+
+
+def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
+    """Convert a dict to a Node object if appropriate, otherwise return dict.
+
+    Args:
+        node_dict: The dict to potentially convert
+
+    Returns:
+        A Node object if the dict matches a Node type, otherwise the original dict
+    """
+    content = node_dict.get("content", "")
+
+    # Extract flags from node_dict (excluding content, indent, children)
+    flags = {
+        k: v for k, v in node_dict.items() if k not in ["content", "indent", "children"]
+    }
+
+    # Check if this should be a ChoiceNode
+    if ChoiceNode.matches(content, **flags):
+        return ChoiceNode(
+            content=content, indent=node_dict["indent"], children=node_dict["children"]
+        )
+
+    # Return dict for types not yet implemented as Node classes
+    return node_dict
 
 
 def _collect_bullet_groups(lines: list[str]) -> list[tuple[int, str]]:
@@ -89,7 +370,7 @@ def _collect_bullet_groups(lines: list[str]) -> list[tuple[int, str]]:
     return bullet_groups
 
 
-def parse_roam_bullets(text: str) -> list[Node]:
+def parse_roam_bullets(text: str) -> list[NodeDict]:
     """Parse Roam-style indented bullets into tree structure.
 
     Two-pass approach for clarity:
@@ -207,7 +488,7 @@ def _normalize_bullet_content(content: str, bullet_indent: int) -> str:
     return "\n".join(normalized_lines)
 
 
-def _find_parent(nodes: list[Node], indent: int) -> Node | None:
+def _find_parent(nodes: list[NodeDict], indent: int) -> NodeDict | None:
     """Find the closest parent node with smaller indentation."""
     # Start from the end and traverse depth-first
     if not nodes:
@@ -235,7 +516,7 @@ def _find_parent(nodes: list[Node], indent: int) -> Node | None:
     return search_last_node(nodes)
 
 
-def transform_tree(nodes: list[Node]) -> list[Node]:
+def transform_tree(nodes: list[NodeDict]) -> list[NodeDict | Node]:
     """Transform tree by removing markers, filtering nodes, etc.
 
     Transformations:
@@ -298,12 +579,14 @@ def transform_tree(nodes: list[Node]) -> list[Node]:
         if has_choice:
             transformed_node["type"] = "choice_block"
 
-        result.append(transformed_node)
+        # Convert to Node object if appropriate
+        node_or_dict = dict_to_node(transformed_node)
+        result.append(node_or_dict)
 
     return result
 
 
-def _is_meta_node(node: Node) -> bool:
+def _is_meta_node(node: NodeDict) -> bool:
     """Check if a node is a #meta node."""
     content = node.get("content", "")
     # Check if the content contains #meta as a word
@@ -362,7 +645,7 @@ def _convert_double_colon_labels(content: str) -> str:
 
 
 def _collect_and_format_numbered_items(
-    nodes: list[Node], start_index: int
+    nodes: list[NodeDict | Node], start_index: int
 ) -> tuple[str, int]:
     """Collect and format consecutive numbered list items.
 
@@ -396,7 +679,7 @@ def _collect_and_format_numbered_items(
     return joined, i
 
 
-def format_tree(nodes: list[Node]) -> str:
+def format_tree(nodes: list[NodeDict | Node]) -> str:
     """Format tree into final markdown output.
 
     Rules:
@@ -428,13 +711,16 @@ def format_tree(nodes: list[Node]) -> str:
     return "\n\n".join(result) + "\n" if result else ""
 
 
-def _is_numbered_list_item(node: Node) -> bool:
+def _is_numbered_list_item(node: NodeDict | Node) -> bool:
     """Check if a node is a numbered list item (starts with digit followed by period)."""
-    content = node.get("content", "").strip()
+    if is_node_object(node):
+        content = node.content.strip()
+    else:
+        content = node.get("content", "").strip()
     return bool(re.match(r"^\d+\.\s", content))
 
 
-def _format_numbered_list_item(node: Node) -> str:
+def _format_numbered_list_item(node: NodeDict | Node) -> str:
     """Format a numbered list item with its children.
 
     Numbered list items should:
@@ -442,8 +728,12 @@ def _format_numbered_list_item(node: Node) -> str:
     - Children should be formatted and flattened
     - Return the item with newline(s) at the end for joining
     """
-    content = node.get("content", "").strip()
-    children = node.get("children", [])
+    if is_node_object(node):
+        content = node.content.strip()
+        children = node.children
+    else:
+        content = node.get("content", "").strip()
+        children = node.get("children", [])
 
     # Numbered items are preserved as-is, no punctuation added
     # Format and flatten children
@@ -495,7 +785,9 @@ def _format_quote_block(content: str) -> str:
     return "\n".join(formatted_lines)
 
 
-def _format_preserve_list_children(children: list[Node], indent_level: int = 0) -> str:
+def _format_preserve_list_children(
+    children: list[NodeDict | Node], indent_level: int = 0
+) -> str:
     """Format children of a preserve_list node as indented bullets.
 
     Args:
@@ -508,9 +800,16 @@ def _format_preserve_list_children(children: list[Node], indent_level: int = 0) 
     formatted_lines = []
 
     for child in children:
-        content = child.get("content", "").strip()
-        child_children = child.get("children", [])
-        preserve_list_child = child.get("preserve_list", False)
+        if is_node_object(child):
+            content = child.content.strip()
+            child_children = child.children
+            preserve_list_child = (
+                False  # Node objects don't have preserve_list flag yet
+            )
+        else:
+            content = child.get("content", "").strip()
+            child_children = child.get("children", [])
+            preserve_list_child = child.get("preserve_list", False)
 
         # Remove bullet marker
         if content.startswith("- "):
@@ -542,123 +841,7 @@ def _format_preserve_list_children(children: list[Node], indent_level: int = 0) 
     return "\n".join(formatted_lines)
 
 
-def _format_multiline_choice_content(
-    lines: list[str], has_bullet: bool, indent_level: int
-) -> str:
-    """Format multi-line content for choice blocks with proper indentation.
-
-    Handles indentation of content that spans multiple lines (e.g., code blocks),
-    preserving relative indentation within the content while aligning with the
-    block's structure.
-
-    Args:
-        lines: The content lines to format (first line is the main content)
-        has_bullet: Whether the first line should have a bullet marker ("- ")
-        indent_level: Current indentation level in spaces (4, 8, 12, etc.)
-
-    Returns:
-        Formatted multi-line content as a single string with embedded newlines
-
-    Indentation Rules:
-        - First line gets indent_level (plus "- " if has_bullet)
-        - If has_bullet: continuation lines get indent_level + 2
-        - If no bullet: continuation lines get indent_level
-        - Relative indentation within the content is preserved (e.g., code blocks)
-        - Empty lines are preserved as-is
-    """
-    indent_str = " " * indent_level
-    formatted_lines = []
-
-    # Format first line with optional bullet marker
-    if has_bullet:
-        formatted_lines.append(indent_str + "- " + lines[0])
-        # When there's a bullet, continuation lines align 2 spaces after the "- "
-        continuation_indent = indent_level + 2
-    else:
-        formatted_lines.append(indent_str + lines[0])
-        # When there's no bullet, continuation lines use the same indentation
-        continuation_indent = indent_level
-
-    # Find minimum indentation in continuation lines to preserve relative indentation.
-    # This is critical for code blocks where relative indentation conveys structure.
-    continuation_lines = lines[1:]
-    leftmost_indent_in_content = None
-    for line in continuation_lines:
-        if line.strip():  # Only consider non-empty lines
-            current_indent = len(line) - len(line.lstrip())
-            if (
-                leftmost_indent_in_content is None
-                or current_indent < leftmost_indent_in_content
-            ):
-                leftmost_indent_in_content = current_indent
-
-    # Format continuation lines, preserving their relative indentation
-    for line in continuation_lines:
-        stripped = line.lstrip()
-        if stripped:
-            # Calculate original indentation and preserve relative offset
-            original_indent = len(line) - len(stripped)
-            # relative_indent is the offset from the leftmost line
-            # (e.g., if leftmost has 4 spaces and this line has 8, relative_indent is 4)
-            relative_indent = original_indent - (leftmost_indent_in_content or 0)
-            formatted_lines.append(
-                " " * (continuation_indent + relative_indent) + stripped
-            )
-        else:
-            # Preserve empty lines exactly as they are
-            formatted_lines.append(line)
-
-    return "\n".join(formatted_lines)
-
-
-def _format_choice_child(node: Node, indent_level: int = 4) -> str:
-    """Format a child of a choice block recursively.
-
-    Args:
-        node: The node to format
-        indent_level: Current indentation level in spaces (4, 8, 12, etc.)
-
-    Rules:
-    - If content starts with "- ": format with "- " at current indentation
-    - If content doesn't start with "- ": format without bullet at current indentation
-    - Preserve content as-is (no automatic punctuation)
-    - For multi-line content with code blocks: indent continuation lines at indent_level + 2
-    - Recursively format children with indent_level + 4
-    """
-    content = node.get("content", "").strip()
-    children = node.get("children", [])
-
-    # Check if content starts with "- "
-    has_bullet = content.startswith("- ")
-    if has_bullet:
-        content = content[2:]  # Remove "- " prefix
-
-    # Handle multi-line content (e.g., content with code blocks)
-    if "\n" in content:
-        lines = content.split("\n")
-        # Extract and format the multi-line content with proper indentation
-        formatted_content = _format_multiline_choice_content(
-            lines, has_bullet, indent_level
-        )
-        formatted_parts = [formatted_content]
-    else:
-        # Single-line content
-        indent_str = " " * indent_level
-        if has_bullet:
-            formatted_parts = [indent_str + "- " + content]
-        else:
-            formatted_parts = [indent_str + content]
-
-    # Recursively format children
-    for child in children:
-        formatted_child = _format_choice_child(child, indent_level + 4)
-        if formatted_child:
-            formatted_parts.append(formatted_child)
-
-    return "\n".join(formatted_parts)
-
-
-def _format_quote_node(node: Node) -> str:
+def _format_quote_node(node: NodeDict | Node) -> str:
     """Format a quote block node.
 
     Args:
@@ -667,44 +850,40 @@ def _format_quote_node(node: Node) -> str:
     Returns:
         Formatted quote block with > prefix on each line
     """
-    content = node.get("content", "").strip()
+    if is_node_object(node):
+        content = node.content.strip()
+    else:
+        content = node.get("content", "").strip()
     # Format the quote block (removes bullet marker internally)
     return _format_quote_block(content)
 
 
-def _format_choice_node(node: Node) -> str:
-    """Format a choice block node.
+def _format_choice_node(node: NodeDict | Node) -> str:
+    """Format a choice block node (fallback for dict-based nodes).
 
     Args:
         node: A node with type == "choice_block"
 
     Returns:
         Formatted choice block with nested structure preserved
+
+    Note: This should not be called for ChoiceNode objects, as they use __str__()
     """
-    content = node.get("content", "").strip()
-    children = node.get("children", [])
+    # This should only be called for dict nodes
+    # ChoiceNode objects are handled by _format_node's is_node_object check
+    if is_node_object(node):
+        return str(node)
 
-    # Remove bullet marker if present, by making it a space so we can dedent
-    if content.startswith("- "):
-        content = content.replace("- ", "  ", 1)
-        content = textwrap.dedent(content)
-
-    # Convert [[Choice]] to **Choice:**
-    content = re.sub(r"\[\[Choice\]\]", "**Choice:**", content)
-
-    # Format the title with "- " prefix
-    formatted_parts = ["- " + content]
-
-    # Format children with proper indentation
-    for child in children:
-        formatted_child = _format_choice_child(child, indent_level=4)
-        if formatted_child:
-            formatted_parts.append(formatted_child)
-
-    return "\n".join(formatted_parts)
+    # Create a temporary ChoiceNode to handle formatting
+    temp_node = ChoiceNode(
+        content=node.get("content", ""),
+        indent=node.get("indent", 0),
+        children=node.get("children", []),
+    )
+    return str(temp_node)
 
 
-def _format_preserve_list_node(node: Node) -> str:
+def _format_preserve_list_node(node: NodeDict | Node) -> str:
     """Format a node with preserve_list flag.
 
     Args:
@@ -713,8 +892,12 @@ def _format_preserve_list_node(node: Node) -> str:
     Returns:
         Formatted node with children preserved as indented bullets
     """
-    content = node.get("content", "").strip()
-    children = node.get("children", [])
+    if is_node_object(node):
+        content = node.content.strip()
+        children = node.children
+    else:
+        content = node.get("content", "").strip()
+        children = node.get("children", [])
 
     # Remove bullet marker if present
     if content.startswith("- "):
@@ -736,7 +919,7 @@ def _format_preserve_list_node(node: Node) -> str:
         return parent_formatted
 
 
-def _format_details_node(node: Node) -> str:
+def _format_details_node(node: NodeDict | Node) -> str:
     """Format a node with details_block flag as HTML details/summary.
 
     Args:
@@ -745,8 +928,12 @@ def _format_details_node(node: Node) -> str:
     Returns:
         Formatted HTML details block with summary and flattened children
     """
-    content = node.get("content", "").strip()
-    children = node.get("children", [])
+    if is_node_object(node):
+        content = node.content.strip()
+        children = node.children
+    else:
+        content = node.get("content", "").strip()
+        children = node.get("children", [])
 
     # Remove bullet marker if present
     if content.startswith("- "):
@@ -789,7 +976,7 @@ def _format_details_node(node: Node) -> str:
         return f"<details>\n<summary>{summary_content}</summary>\n</details>"
 
 
-def _format_regular_node(node: Node) -> str:
+def _format_regular_node(node: NodeDict | Node) -> str:
     """Format a regular bullet node with flattening.
 
     Args:
@@ -798,8 +985,12 @@ def _format_regular_node(node: Node) -> str:
     Returns:
         Formatted node with children flattened and punctuation added
     """
-    content = node.get("content", "").strip()
-    children = node.get("children", [])
+    if is_node_object(node):
+        content = node.content.strip()
+        children = node.children
+    else:
+        content = node.get("content", "").strip()
+        children = node.get("children", [])
 
     # Remove bullet marker if present, by making it a space so we can dedent
     if content.startswith("- "):
@@ -826,8 +1017,11 @@ def _format_regular_node(node: Node) -> str:
             if joined:
                 result_parts.append(joined)
         else:
-            # Check if child is a choice block
-            if child.get("type") == "choice_block":
+            # Check if child is a choice block (Node object or dict with type)
+            is_choice = (is_node_object(child) and isinstance(child, ChoiceNode)) or (
+                not is_node_object(child) and child.get("type") == "choice_block"
+            )
+            if is_choice:
                 # Format choice block and add it
                 formatted_child = _format_node(child)
                 if formatted_child:
@@ -842,7 +1036,7 @@ def _format_regular_node(node: Node) -> str:
     return "\n\n".join(result_parts)
 
 
-def _format_node(node: Node, is_choice_child: bool = False) -> str:
+def _format_node(node: NodeDict | Node, is_choice_child: bool = False) -> str:
     """Format a single node by dispatching to type-specific handlers.
 
     Args:
@@ -850,12 +1044,18 @@ def _format_node(node: Node, is_choice_child: bool = False) -> str:
         is_choice_child: True if this node is a child of a choice block (unused, kept for compatibility)
 
     Dispatches to:
+    - Node.__str__(): For Node objects (uses their own formatting)
     - _format_quote_node: For quote blocks (content starts with "- > ")
     - _format_choice_node: For choice blocks (type == "choice_block")
     - _format_preserve_list_node: For nodes with preserve_list flag
     - _format_details_node: For details blocks (details_block == True)
     - _format_regular_node: For regular bullets with flattening
     """
+    # Check if this is a Node object first
+    if is_node_object(node):
+        return str(node)
+
+    # Handle dict-based nodes
     content = node.get("content", "").strip()
 
     # Dispatch to appropriate handler based on node type

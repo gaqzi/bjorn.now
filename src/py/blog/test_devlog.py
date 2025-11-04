@@ -1,4 +1,12 @@
-from .devlog import format_tree, main, parse_roam_bullets, process, transform_tree
+from .devlog import (
+    ChoiceNode,
+    format_tree,
+    is_node_object,
+    main,
+    parse_roam_bullets,
+    process,
+    transform_tree,
+)
 
 
 class TestParseRoamBullets:
@@ -167,15 +175,10 @@ class TestTransformTree:
                 "children": [],
             }
         ]
-        expected = [
-            {
-                "content": "- [[Choice]] My decision",
-                "indent": 0,
-                "children": [],
-                "type": "choice_block",
-            }
-        ]
-        assert transform_tree(input_nodes) == expected
+        result = transform_tree(input_nodes)
+        expected = ChoiceNode(content="- [[Choice]] My decision", indent=0, children=[])
+        assert len(result) == 1
+        assert result[0] == expected
 
     def test_case_7_convert_code_fences(self):
         """Test Case 7: Convert code fences 'plain text' to 'plaintext'."""
