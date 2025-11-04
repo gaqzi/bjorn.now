@@ -25,8 +25,75 @@ class Node(TypedDict):
     preserve_list: NotRequired[bool]
 
 
+def _collect_bullet_groups(lines: list[str]) -> list[tuple[int, str]]:
+    """Collect lines into bullet groups, handling continuation lines.
+
+    Pass 1 of parsing: Groups lines belonging to each bullet together,
+    handling continuation lines (lines without bullet markers that follow
+    a bullet line).
+
+    Args:
+        lines: List of input lines to process
+
+    Returns:
+        List of (indent_level, content) tuples where:
+        - indent_level: Indentation in spaces (0, 4, 8, etc.)
+        - content: The bullet marker + all lines for this bullet (including
+          continuation lines), normalized for indentation
+
+    Processing:
+        - Skips empty lines
+        - Groups lines without bullet markers as continuations of previous bullet
+        - Normalizes indentation after collecting all lines for a bullet
+    """
+    bullet_groups = []
+    current_indent = None
+    current_content_lines = []
+
+    for line in lines:
+        if not line.strip():
+            # Skip empty lines entirely
+            continue
+
+        # Calculate indentation
+        indent = len(line) - len(line.lstrip())
+        stripped_content = line.strip()
+        has_bullet = _has_bullet_marker(stripped_content)
+
+        if has_bullet:
+            # This is a new bullet line
+            # First, finalize the previous group if it exists
+            if current_content_lines:
+                # Join collected lines and normalize
+                combined_content = "\n".join(current_content_lines)
+                normalized = _normalize_bullet_content(combined_content, current_indent)
+                bullet_groups.append((current_indent, normalized))
+
+            # Start a new group with this bullet line
+            current_indent = indent
+            current_content_lines = [stripped_content]
+        else:
+            # This is a continuation line (no bullet marker)
+            if current_content_lines:
+                # Append to current group, preserving original formatting
+                current_content_lines.append(line)
+
+    # Finalize the last group
+    if current_content_lines:
+        combined_content = "\n".join(current_content_lines)
+        normalized = _normalize_bullet_content(combined_content, current_indent)
+        bullet_groups.append((current_indent, normalized))
+
+    return bullet_groups
+
+
 def parse_roam_bullets(text: str) -> list[Node]:
     """Parse Roam-style indented bullets into tree structure.
+
+    Two-pass approach for clarity:
+    1. Pass 1 (_collect_bullet_groups): Collect lines into bullet groups,
+       handling continuation lines and normalizing indentation
+    2. Pass 2 (this function): Build tree structure from bullet groups
 
     Returns list of nodes where each node is:
     {
@@ -39,60 +106,29 @@ def parse_roam_bullets(text: str) -> list[Node]:
         return []
 
     lines = text.split("\n")
+
+    # Pass 1: Collect bullet groups with continuation lines handled
+    bullet_groups = _collect_bullet_groups(lines)
+
+    # Pass 2: Build tree structure from bullet groups
     root_nodes = []
-    last_node = None  # Track the most recent node for continuation lines
-
-    for line in lines:
-        if not line.strip():
-            continue
-
-        # Calculate indentation level (4 spaces = 1 level)
-        indent = len(line) - len(line.lstrip())
-
-        # Check if this line has a bullet marker
-        stripped_content = line.strip()
-        has_bullet = _has_bullet_marker(stripped_content)
-
-        # If no bullet marker, this is a continuation line
-        if not has_bullet and last_node is not None:
-            # Append to the last node's content, preserving the original line format
-            last_node["content"] += "\n" + line
-            continue
-
-        # Normalize the previous node now that it's complete
-        if last_node is not None:
-            last_node["content"] = _normalize_bullet_content(
-                last_node["content"], last_node["indent"]
-            )
-
-        content = stripped_content
-
+    for indent, content in bullet_groups:
         node = {
             "content": content,
             "indent": indent,
             "children": [],
         }
 
-        # Find parent and add as child
+        # Find parent and add as child, or add to root
         if indent == 0:
             root_nodes.append(node)
-            last_node = node
         else:
-            # Find the parent node
             parent = _find_parent(root_nodes, indent)
             if parent is not None:
                 parent["children"].append(node)
-                last_node = node
             else:
                 # No parent found, add to root (handles indented bullets without parents)
                 root_nodes.append(node)
-                last_node = node
-
-    # Normalize the final node
-    if last_node is not None:
-        last_node["content"] = _normalize_bullet_content(
-            last_node["content"], last_node["indent"]
-        )
 
     return root_nodes
 
