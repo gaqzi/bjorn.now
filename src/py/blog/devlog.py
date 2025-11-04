@@ -558,62 +558,100 @@ def _format_choice_child(node: Node, indent_level: int = 4) -> str:
     return "\n".join(formatted_parts)
 
 
-def _format_node(node: Node, is_choice_child: bool = False) -> str:
-    """Format a single node and its children.
+def _format_quote_node(node: Node) -> str:
+    """Format a quote block node.
 
     Args:
-        node: The node to format
-        is_choice_child: True if this node is a child of a choice block
+        node: A node with content starting with "- > "
+
+    Returns:
+        Formatted quote block with > prefix on each line
     """
     content = node.get("content", "").strip()
-    node_type = node.get("type")
-    children = node.get("children", [])
-    preserve_list = node.get("preserve_list", False)
+    # Format the quote block (removes bullet marker internally)
+    return _format_quote_block(content)
 
-    # Check for quote blocks (content starts with "> " after bullet marker)
-    is_quote_block = False
-    if content.startswith("- > "):
-        is_quote_block = True
-        # Remove bullet marker and format as quote block
-        content = _format_quote_block(content)
-        return content if content else ""
+
+def _format_choice_node(node: Node) -> str:
+    """Format a choice block node.
+
+    Args:
+        node: A node with type == "choice_block"
+
+    Returns:
+        Formatted choice block with nested structure preserved
+    """
+    content = node.get("content", "").strip()
+    children = node.get("children", [])
 
     # Remove bullet marker if present, by making it a space so we can dedent
     if content.startswith("- "):
         content = content.replace("- ", "  ", 1)
         content = textwrap.dedent(content)
 
-    # Handle choice blocks
-    if node_type == "choice_block":
-        # Convert [[Choice]] to **Choice:**
-        content = re.sub(r"\[\[Choice\]\]", "**Choice:**", content)
+    # Convert [[Choice]] to **Choice:**
+    content = re.sub(r"\[\[Choice\]\]", "**Choice:**", content)
 
-        # Format the title with "- " prefix
-        formatted_parts = ["- " + content]
+    # Format the title with "- " prefix
+    formatted_parts = ["- " + content]
 
-        # Format children with proper indentation
-        for child in children:
-            formatted_child = _format_choice_child(child, indent_level=4)
-            if formatted_child:
-                formatted_parts.append(formatted_child)
+    # Format children with proper indentation
+    for child in children:
+        formatted_child = _format_choice_child(child, indent_level=4)
+        if formatted_child:
+            formatted_parts.append(formatted_child)
 
-        return "\n".join(formatted_parts)
+    return "\n".join(formatted_parts)
 
-    # Handle preserve_list nodes
-    if preserve_list:
-        # Format parent content: ensure it ends with a colon (no period)
-        if not content.endswith(":"):
-            parent_formatted = content + ":"
-        else:
-            parent_formatted = content
 
-        # Format children as indented bullets
-        formatted_children = _format_preserve_list_children(children, indent_level=0)
+def _format_preserve_list_node(node: Node) -> str:
+    """Format a node with preserve_list flag.
 
-        if formatted_children:
-            return parent_formatted + "\n\n" + formatted_children
-        else:
-            return parent_formatted
+    Args:
+        node: A node with preserve_list == True
+
+    Returns:
+        Formatted node with children preserved as indented bullets
+    """
+    content = node.get("content", "").strip()
+    children = node.get("children", [])
+
+    # Remove bullet marker if present
+    if content.startswith("- "):
+        content = content.replace("- ", "  ", 1)
+        content = textwrap.dedent(content)
+
+    # Format parent content: ensure it ends with a colon (no period)
+    if not content.endswith(":"):
+        parent_formatted = content + ":"
+    else:
+        parent_formatted = content
+
+    # Format children as indented bullets
+    formatted_children = _format_preserve_list_children(children, indent_level=0)
+
+    if formatted_children:
+        return parent_formatted + "\n\n" + formatted_children
+    else:
+        return parent_formatted
+
+
+def _format_regular_node(node: Node) -> str:
+    """Format a regular bullet node with flattening.
+
+    Args:
+        node: A node without special type or preserve_list flag
+
+    Returns:
+        Formatted node with children flattened and punctuation added
+    """
+    content = node.get("content", "").strip()
+    children = node.get("children", [])
+
+    # Remove bullet marker if present, by making it a space so we can dedent
+    if content.startswith("- "):
+        content = content.replace("- ", "  ", 1)
+        content = textwrap.dedent(content)
 
     # For regular bullets, process children in order maintaining sequence
     # This includes regular content that gets flattened and choice blocks inline
@@ -649,6 +687,31 @@ def _format_node(node: Node, is_choice_child: bool = False) -> str:
             i += 1
 
     return "\n\n".join(result_parts)
+
+
+def _format_node(node: Node, is_choice_child: bool = False) -> str:
+    """Format a single node by dispatching to type-specific handlers.
+
+    Args:
+        node: The node to format
+        is_choice_child: True if this node is a child of a choice block (unused, kept for compatibility)
+
+    Dispatches to:
+    - _format_quote_node: For quote blocks (content starts with "- > ")
+    - _format_choice_node: For choice blocks (type == "choice_block")
+    - _format_preserve_list_node: For nodes with preserve_list flag
+    - _format_regular_node: For regular bullets with flattening
+    """
+    content = node.get("content", "").strip()
+
+    # Dispatch to appropriate handler based on node type
+    if content.startswith("- > "):
+        return _format_quote_node(node)
+    if node.get("type") == "choice_block":
+        return _format_choice_node(node)
+    if node.get("preserve_list"):
+        return _format_preserve_list_node(node)
+    return _format_regular_node(node)
 
 
 def _add_punctuation(text: str) -> str:
