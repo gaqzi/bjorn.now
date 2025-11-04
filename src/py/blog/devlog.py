@@ -396,6 +396,118 @@ class NumberedListNode(Node):
             return content + "\n"
 
 
+class PreserveListNode(Node):
+    """Node representing a list with preserve_list flag to preserve children as indented bullets."""
+
+    @classmethod
+    def matches(cls, content: str, **flags) -> bool:
+        """Match nodes with preserve_list == True."""
+        return flags.get("preserve_list") == True
+
+    def modify(self, fn):
+        """Apply function to content and recurse to children."""
+        modified_content = fn(self.content)
+        modified_children = []
+        for child in self.children:
+            if is_node_object(child):
+                modified_children.append(child.modify(fn))
+            else:
+                # Handle dict children
+                modified_child = dict(child)
+                modified_child["content"] = fn(child.get("content", ""))
+                if child.get("children"):
+                    modified_child["children"] = [
+                        c.modify(fn) if is_node_object(c) else c
+                        for c in child["children"]
+                    ]
+                modified_children.append(modified_child)
+        return PreserveListNode(modified_content, self.indent, modified_children)
+
+    def __str__(self) -> str:
+        """Format preserve_list node with children preserved as indented bullets.
+
+        No flattening occurs - children maintain their bullet structure.
+        """
+        content = self.content.strip()
+
+        # Remove bullet marker if present
+        if content.startswith("- "):
+            content = content.replace("- ", "  ", 1)
+            content = textwrap.dedent(content)
+
+        # Format parent content: ensure it ends with a colon (no period)
+        if not content.endswith(":"):
+            parent_formatted = content + ":"
+        else:
+            parent_formatted = content
+
+        # Format children as indented bullets
+        formatted_children = self._format_preserve_list_children(
+            self.children, indent_level=0
+        )
+
+        if formatted_children:
+            return parent_formatted + "\n\n" + formatted_children
+        else:
+            return parent_formatted
+
+    def _format_preserve_list_children(
+        self, children: list, indent_level: int = 0
+    ) -> str:
+        """Format children of a preserve_list node as indented bullets.
+
+        Args:
+            children: The child nodes to format (can be Node objects or dicts)
+            indent_level: Current indentation level in spaces (0, 4, 8, etc.)
+
+        Returns:
+            Formatted children as indented bullets, without trailing newline
+        """
+        formatted_lines = []
+
+        for child in children:
+            if is_node_object(child):
+                content = child.content.strip()
+                child_children = child.children
+                preserve_list_child = isinstance(child, PreserveListNode)
+            else:
+                content = child.get("content", "").strip()
+                child_children = child.get("children", [])
+                preserve_list_child = child.get("preserve_list", False)
+
+            # Remove bullet marker
+            if content.startswith("- "):
+                content = content[2:]
+
+            # Create indentation
+            indent_str = " " * indent_level
+
+            # Add current node as bullet
+            formatted_lines.append(indent_str + "- " + content)
+
+            # Handle children
+            if preserve_list_child and child_children:
+                # Recursively format preserve_list children with more indentation
+                child_formatted = self._format_preserve_list_children(
+                    child_children, indent_level + 4
+                )
+                if child_formatted:
+                    formatted_lines.append(child_formatted)
+            elif child_children:
+                # Non-preserve_list children should be flattened
+                for grandchild in child_children:
+                    if is_node_object(grandchild):
+                        grandchild_content = grandchild.content.strip()
+                    else:
+                        grandchild_content = grandchild.get("content", "").strip()
+                    if grandchild_content.startswith("- "):
+                        grandchild_content = grandchild_content[2:]
+                    indent_str_child = " " * (indent_level + 4)
+                    formatted_lines.append(indent_str_child + "- " + grandchild_content)
+
+        return "\n".join(formatted_lines)
+
+
 def is_node_object(obj) -> bool:
     """Check if an object is a Node instance (not a dict).
 
@@ -425,9 +537,15 @@ def dict_to_node(node_dict: NodeDict) -> NodeDict | Node:
     }
 
     # Check content pattern first (before flag-based checks)
-    # This ensures NumberedListNode matches before DetailsNode/ChoiceNode
+    # This ensures NumberedListNode matches before DetailsNode/ChoiceNode/PreserveListNode
     if NumberedListNode.matches(content, **flags):
         return NumberedListNode(
+            content=content, indent=node_dict["indent"], children=node_dict["children"]
+        )
+
+    # Check if this should be a PreserveListNode
+    if PreserveListNode.matches(content, **flags):
+        return PreserveListNode(
             content=content, indent=node_dict["indent"], children=node_dict["children"]
         )
 

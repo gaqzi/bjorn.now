@@ -2,6 +2,7 @@ from .devlog import (
     ChoiceNode,
     DetailsNode,
     NumberedListNode,
+    PreserveListNode,
     format_tree,
     is_node_object,
     main,
@@ -237,10 +238,15 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        # The [list] marker should be removed and trailing spaces cleaned
-        assert result[0]["content"] == "- Keep these as list:"
-        # The node should be marked to preserve children as list
-        assert result[0].get("preserve_list") is True
+        expected = PreserveListNode(
+            content="- Keep these as list:",
+            indent=0,
+            children=[
+                {"content": "- First", "indent": 4, "children": []},
+                {"content": "- Second", "indent": 4, "children": []},
+            ],
+        )
+        assert result[0] == expected
 
     def test_case_9_list_marker_with_trailing_spaces(self):
         """Test Case 9: Remove [list] marker and any trailing spaces."""
@@ -252,8 +258,8 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        assert result[0]["content"] == "- Text here:"
-        assert result[0].get("preserve_list") is True
+        expected = PreserveListNode(content="- Text here:", indent=0, children=[])
+        assert result[0] == expected
 
     def test_case_9_nested_list_markers(self):
         """Test Case 9: Test multiple levels with [list] markers."""
@@ -273,10 +279,18 @@ code here
             }
         ]
         result = transform_tree(input_nodes)
-        assert result[0]["content"] == "- Parent:"
-        assert result[0].get("preserve_list") is True
-        assert result[0]["children"][0]["content"] == "- Child:"
-        assert result[0]["children"][0].get("preserve_list") is True
+        expected = PreserveListNode(
+            content="- Parent:",
+            indent=0,
+            children=[
+                PreserveListNode(
+                    content="- Child:",
+                    indent=4,
+                    children=[{"content": "- Grandchild", "indent": 8, "children": []}],
+                )
+            ],
+        )
+        assert result[0] == expected
 
     def test_detect_details_marker(self):
         """Test detecting and removing [details] marker from content."""
@@ -706,15 +720,14 @@ class TestFormatTree:
     def test_case_19_preserve_children_with_list_marker(self):
         """Test Case 19: Children with [list] marker should be preserved as indented bullets."""
         input_nodes = [
-            {
-                "content": "- Keep these as list:",
-                "indent": 0,
-                "children": [
+            PreserveListNode(
+                content="- Keep these as list:",
+                indent=0,
+                children=[
                     {"content": "- First", "indent": 4, "children": []},
                     {"content": "- Second", "indent": 4, "children": []},
                 ],
-                "preserve_list": True,
-            }
+            )
         ]
         expected = "Keep these as list:\n\n- First\n- Second\n"
         assert format_tree(input_nodes) == expected
@@ -737,40 +750,34 @@ class TestFormatTree:
 
         # With [list] marker
         with_list = [
-            {
-                "content": "- Parent",
-                "indent": 0,
-                "children": [
+            PreserveListNode(
+                content="- Parent",
+                indent=0,
+                children=[
                     {"content": "- Child1", "indent": 4, "children": []},
                     {"content": "- Child2", "indent": 4, "children": []},
                 ],
-                "preserve_list": True,
-            }
+            )
         ]
-        expected_list = "Parent.\n\n- Child1\n- Second\n"
-        # Note: This expected output needs to match actual behavior
-        # For now, let's say it keeps bullets but removes periods
         expected_list = "Parent:\n\n- Child1\n- Child2\n"
         assert format_tree(with_list) == expected_list
 
     def test_case_19_nested_list_markers(self):
         """Test Case 19: Test multiple levels with [list] markers."""
         input_nodes = [
-            {
-                "content": "- Parent:",
-                "indent": 0,
-                "children": [
-                    {
-                        "content": "- Child:",
-                        "indent": 4,
-                        "children": [
+            PreserveListNode(
+                content="- Parent:",
+                indent=0,
+                children=[
+                    PreserveListNode(
+                        content="- Child:",
+                        indent=4,
+                        children=[
                             {"content": "- Grandchild", "indent": 8, "children": []}
                         ],
-                        "preserve_list": True,
-                    }
+                    )
                 ],
-                "preserve_list": True,
-            }
+            )
         ]
         expected = "Parent:\n\n- Child:\n    - Grandchild\n"
         assert format_tree(input_nodes) == expected
