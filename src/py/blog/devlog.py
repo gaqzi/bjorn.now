@@ -187,6 +187,7 @@ def transform_tree(nodes: list[dict]) -> list[dict]:
     - Mark [[Choice]] blocks with special type
     - Convert code fence 'plain text' to 'plaintext'
     - Convert :: labels to **label:** format
+    - Detect [list] marker and set preserve_list flag
     """
     # Filter out #meta nodes and transform the rest
     result = []
@@ -220,6 +221,13 @@ def transform_tree(nodes: list[dict]) -> list[dict]:
         # Convert :: labels to **label:** format
         transformed_content = _convert_double_colon_labels(transformed_content)
 
+        # Detect and remove [list] marker
+        has_list_marker, transformed_content = _detect_and_remove_list_marker(
+            transformed_content
+        )
+        if has_list_marker:
+            transformed_node["preserve_list"] = True
+
         transformed_node["content"] = transformed_content
 
         # Mark choice blocks
@@ -242,6 +250,22 @@ def _is_meta_node(node: dict) -> bool:
     )
 
 
+def _detect_and_remove_list_marker(content: str) -> tuple[bool, str]:
+    """Detect and remove [list] marker from content.
+
+    Returns:
+        Tuple of (has_list_marker, cleaned_content)
+        - has_list_marker: True if [list] marker was found and removed
+        - cleaned_content: Content with [list] marker and trailing spaces removed
+    """
+    # Check if content ends with [list] (possibly with trailing spaces)
+    if re.search(r"\[list\]\s*$", content):
+        # Remove [list] and trailing spaces
+        cleaned = re.sub(r"\s*\[list\]\s*$", "", content)
+        return True, cleaned
+    return False, content
+
+
 def _convert_double_colon_labels(content: str) -> str:
     """Convert :: labels to **label:** format.
 
@@ -261,15 +285,153 @@ def format_tree(nodes: list[dict]) -> str:
 
     Rules:
     - Choice blocks: Keep nested structure, convert [[Choice]] to **Choice:**
-    - Numbered lists: Preserve as-is
+    - Numbered lists: Preserve as-is without blank lines between consecutive items
     - Regular bullets: Flatten to paragraphs with punctuation
     """
+    if not nodes:
+        return ""
+
     result = []
-    for node in nodes:
-        formatted = _format_node(node)
-        if formatted:
-            result.append(formatted)
+    i = 0
+    while i < len(nodes):
+        node = nodes[i]
+
+        # Check if this is a numbered list item
+        if _is_numbered_list_item(node):
+            # Collect consecutive numbered list items
+            numbered_items = []
+            while i < len(nodes) and _is_numbered_list_item(nodes[i]):
+                formatted = _format_numbered_list_item(nodes[i])
+                if formatted:
+                    numbered_items.append(formatted)
+                i += 1
+            # Join numbered items: pure concatenation preserves all newlines
+            # (items with children end with \n\n, items without end with \n)
+            joined = "".join(numbered_items).rstrip("\n")
+            if joined:
+                result.append(joined)
+        else:
+            # Regular node processing
+            formatted = _format_node(node)
+            if formatted:
+                result.append(formatted)
+            i += 1
+
     return "\n\n".join(result) + "\n" if result else ""
+
+
+def _is_numbered_list_item(node: dict) -> bool:
+    """Check if a node is a numbered list item (starts with digit followed by period)."""
+    content = node.get("content", "").strip()
+    return bool(re.match(r"^\d+\.\s", content))
+
+
+def _format_numbered_list_item(node: dict) -> str:
+    """Format a numbered list item with its children.
+
+    Numbered list items should:
+    - NOT have periods added (preserve as-is)
+    - Children should be formatted and flattened
+    - Return the item with newline(s) at the end for joining
+    """
+    content = node.get("content", "").strip()
+    children = node.get("children", [])
+
+    # Numbered items are preserved as-is, no punctuation added
+    # Format and flatten children
+    child_content = []
+    for child in children:
+        formatted_child = _format_node(child)
+        if formatted_child:
+            child_content.append(formatted_child)
+
+    # Add children separated by blank lines
+    if child_content:
+        # When we have children, end with \n\n to separate from the next numbered item
+        return content + "\n\n" + "\n\n".join(child_content) + "\n\n"
+    else:
+        # When no children, just end with single newline
+        return content + "\n"
+
+
+def _format_quote_block(content: str) -> str:
+    """Format a quote block by preserving > prefixes on each line.
+
+    Args:
+        content: The content starting with "- > " or multi-line quote
+
+    Returns:
+        The formatted quote block with > prefix on each line, without trailing newline
+    """
+    # Remove the leading "- " bullet marker
+    if content.startswith("- "):
+        content = content[2:]
+
+    # Split into lines
+    lines = content.split("\n")
+    formatted_lines = []
+
+    for line in lines:
+        # Remove leading/trailing whitespace to normalize
+        stripped = line.strip()
+        if stripped:
+            # If line already starts with "> ", keep it; otherwise add it
+            if not stripped.startswith("> "):
+                formatted_lines.append("> " + stripped)
+            else:
+                formatted_lines.append(stripped)
+        else:
+            # Preserve empty lines if needed (though unlikely in quotes)
+            formatted_lines.append(line)
+
+    return "\n".join(formatted_lines)
+
+
+def _format_preserve_list_children(children: list[dict], indent_level: int = 0) -> str:
+    """Format children of a preserve_list node as indented bullets.
+
+    Args:
+        children: The child nodes to format
+        indent_level: Current indentation level in spaces (0, 4, 8, etc.)
+
+    Returns:
+        Formatted children as indented bullets, without trailing newline
+    """
+    formatted_lines = []
+
+    for child in children:
+        content = child.get("content", "").strip()
+        child_children = child.get("children", [])
+        preserve_list_child = child.get("preserve_list", False)
+
+        # Remove bullet marker
+        if content.startswith("- "):
+            content = content[2:]
+
+        # Create indentation
+        indent_str = " " * indent_level
+
+        # Add current node as bullet
+        formatted_lines.append(indent_str + "- " + content)
+
+        # Handle children
+        if preserve_list_child and child_children:
+            # Recursively format preserve_list children with more indentation
+            child_formatted = _format_preserve_list_children(
+                child_children, indent_level + 4
+            )
+            if child_formatted:
+                formatted_lines.append(child_formatted)
+        elif child_children:
+            # Non-preserve_list children should be flattened
+            for grandchild in child_children:
+                grandchild_content = grandchild.get("content", "").strip()
+                if grandchild_content.startswith("- "):
+                    grandchild_content = grandchild_content[2:]
+                indent_str_child = " " * (indent_level + 4)
+                formatted_lines.append(indent_str_child + "- " + grandchild_content)
+
+    return "\n".join(formatted_lines)
 
 
 def _format_choice_child(node: dict, indent_level: int = 4) -> str:
@@ -283,6 +445,7 @@ def _format_choice_child(node: dict, indent_level: int = 4) -> str:
     - If content starts with "- ": format with "- " at current indentation
     - If content doesn't start with "- ": format without bullet at current indentation
     - Preserve content as-is (no automatic punctuation)
+    - For multi-line content with code blocks: indent continuation lines at indent_level + 2
     - Recursively format children with indent_level + 4
     """
     content = node.get("content", "").strip()
@@ -293,12 +456,52 @@ def _format_choice_child(node: dict, indent_level: int = 4) -> str:
     if has_bullet:
         content = content[2:]  # Remove "- " prefix
 
-    # Format current node
-    indent_str = " " * indent_level
-    if has_bullet:
-        formatted_parts = [indent_str + "- " + content]
+    # Handle multi-line content (e.g., content with code blocks)
+    if "\n" in content:
+        lines = content.split("\n")
+        indent_str = " " * indent_level
+        # First line gets the bullet if present
+        if has_bullet:
+            formatted_lines = [indent_str + "- " + lines[0]]
+            # When there's a bullet, continuation lines get indented at indent_level + 2
+            continuation_indent_base = indent_level + 2
+        else:
+            formatted_lines = [indent_str + lines[0]]
+            # When there's no bullet, continuation lines get the same indent as the first line
+            continuation_indent_base = indent_level
+
+        # Find minimum indentation in continuation lines to preserve relative indentation
+        continuation_lines = lines[1:]
+        min_indent = None
+        for line in continuation_lines:
+            if line.strip():  # Only consider non-empty lines
+                current_indent = len(line) - len(line.lstrip())
+                if min_indent is None or current_indent < min_indent:
+                    min_indent = current_indent
+
+        for line in continuation_lines:
+            stripped = line.lstrip()
+            if stripped:
+                # Calculate how much indentation the original line had
+                original_indent = len(line) - len(stripped)
+                # Preserve relative indentation within code blocks
+                # relative_indent is the difference from the minimum
+                relative_indent = original_indent - (min_indent or 0)
+                formatted_lines.append(
+                    " " * (continuation_indent_base + relative_indent) + stripped
+                )
+            else:
+                # Preserve empty lines
+                formatted_lines.append(line)
+
+        formatted_parts = ["\n".join(formatted_lines)]
     else:
-        formatted_parts = [indent_str + content]
+        # Single-line content
+        indent_str = " " * indent_level
+        if has_bullet:
+            formatted_parts = [indent_str + "- " + content]
+        else:
+            formatted_parts = [indent_str + content]
 
     # Recursively format children
     for child in children:
@@ -319,6 +522,15 @@ def _format_node(node: dict, is_choice_child: bool = False) -> str:
     content = node.get("content", "").strip()
     node_type = node.get("type")
     children = node.get("children", [])
+    preserve_list = node.get("preserve_list", False)
+
+    # Check for quote blocks (content starts with "> " after bullet marker)
+    is_quote_block = False
+    if content.startswith("- > "):
+        is_quote_block = True
+        # Remove bullet marker and format as quote block
+        content = _format_quote_block(content)
+        return content if content else ""
 
     # Remove bullet marker if present, by making it a space so we can dedent
     if content.startswith("- "):
@@ -341,28 +553,61 @@ def _format_node(node: dict, is_choice_child: bool = False) -> str:
 
         return "\n".join(formatted_parts)
 
-    # For regular bullets, flatten all descendants
-    # Collect all content from this node and its children recursively
-    all_content = [content]
-    _collect_all_content(node, all_content)
+    # Handle preserve_list nodes
+    if preserve_list:
+        # Format parent content: ensure it ends with a colon (no period)
+        if not content.endswith(":"):
+            parent_formatted = content + ":"
+        else:
+            parent_formatted = content
 
-    # Add punctuation to each item if needed
-    formatted_items = []
-    for item in all_content:
-        formatted_items.append(_add_punctuation(item))
+        # Format children as indented bullets
+        formatted_children = _format_preserve_list_children(children, indent_level=0)
 
-    # Collect any choice_block children that need separate formatting
-    choice_blocks = []
-    _collect_choice_blocks(node, choice_blocks)
+        if formatted_children:
+            return parent_formatted + "\n\n" + formatted_children
+        else:
+            return parent_formatted
 
-    # Join flattened content with blank lines between paragraphs
-    result_parts = ["\n\n".join(formatted_items)]
+    # For regular bullets, process children in order maintaining sequence
+    # This includes regular content that gets flattened and choice blocks inline
+    result_parts = []
 
-    # Add formatted choice blocks
-    for choice_block in choice_blocks:
-        formatted_choice = _format_node(choice_block)
-        if formatted_choice:
-            result_parts.append(formatted_choice)
+    # Add punctuation to root content if present
+    if content:
+        result_parts.append(_add_punctuation(content))
+
+    # Process children, detecting consecutive numbered list items
+    i = 0
+    while i < len(children):
+        child = children[i]
+
+        # Check if this starts a sequence of numbered list items
+        if _is_numbered_list_item(child):
+            # Collect consecutive numbered list items
+            numbered_items = []
+            while i < len(children) and _is_numbered_list_item(children[i]):
+                formatted = _format_numbered_list_item(children[i])
+                if formatted:
+                    numbered_items.append(formatted)
+                i += 1
+            # Join numbered items without blank lines
+            joined = "".join(numbered_items).rstrip("\n")
+            if joined:
+                result_parts.append(joined)
+        else:
+            # Check if child is a choice block
+            if child.get("type") == "choice_block":
+                # Format choice block and add it
+                formatted_child = _format_node(child)
+                if formatted_child:
+                    result_parts.append(formatted_child)
+            else:
+                # Format non-choice children and flatten their content
+                formatted_child = _format_node(child)
+                if formatted_child:
+                    result_parts.append(formatted_child)
+            i += 1
 
     return "\n\n".join(result_parts)
 
@@ -408,6 +653,7 @@ def _add_punctuation(text: str) -> str:
     - Don't add period if ends with: . ! ? : ) or smileys like :) :D etc.
     - Don't add period to headers (starting with #)
     - Don't add period to code fences (ending with ```)
+    - Don't add period to numbered lists (starting with digit. )
     - DO add period if no punctuation at end
     """
     text = text.strip()
@@ -420,6 +666,10 @@ def _add_punctuation(text: str) -> str:
 
     # Don't add punctuation to code fences
     if text.endswith("```"):
+        return text
+
+    # Don't add punctuation to numbered lists
+    if re.match(r"^\d+\.\s", text):
         return text
 
     # Check if ends with punctuation or smiley
@@ -443,8 +693,16 @@ def process(content: str) -> str:
     """Process Roam Research notes into Markdown format."""
     parsed = parse_roam_bullets(content)
     transformed = transform_tree(parsed)
+    formatted = format_tree(transformed)
 
-    return format_tree(transformed)
+    # Convert 'plain text' code fence to 'plaintext'
+    formatted = re.sub(r"```plain text", "```plaintext", formatted)
+
+    # Preserve leading newline from input
+    if content.startswith("\n"):
+        formatted = "\n" + formatted
+
+    return formatted
 
 
 def main() -> int:
