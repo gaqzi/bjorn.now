@@ -1,5 +1,51 @@
 #!/bin/bash
 
+function isClaudeCodeWeb() {
+  [[ -n "${CLAUDE_CODE_REMOTE}" ]]
+}
+
+function installHugoDirectly() {
+  local hugo_version=$(grep '^gohugo' .tool-versions | awk '{print $2}')
+  local install_dir="$HOME/.local/bin"
+
+  if [[ -z "${hugo_version}" ]]; then
+    echo "Failed to read Hugo version from .tool-versions" >&2
+    return 1
+  fi
+
+  if command -v hugo &> /dev/null; then
+    echo "Hugo already installed: $(hugo version)"
+    return 0
+  fi
+
+  echo "Installing Hugo ${hugo_version} directly..."
+  mkdir -p "${install_dir}"
+
+  local tmp_dir=$(mktemp -d)
+  cd "${tmp_dir}" || return 1
+
+  wget -q "https://github.com/gohugoio/hugo/releases/download/v${hugo_version}/hugo_extended_${hugo_version}_linux-amd64.tar.gz" || {
+    echo "Failed to download Hugo" >&2
+    return 1
+  }
+
+  tar -xzf "hugo_extended_${hugo_version}_linux-amd64.tar.gz" || {
+    echo "Failed to extract Hugo" >&2
+    return 1
+  }
+
+  mv hugo "${install_dir}/" || {
+    echo "Failed to move Hugo to ${install_dir}" >&2
+    return 1
+  }
+
+  cd - > /dev/null
+  rm -rf "${tmp_dir}"
+
+  export PATH="${install_dir}:${PATH}"
+  echo "Hugo installed successfully: $(hugo version)"
+}
+
 function installAsdf() {
   if which -s asdf ; then
     return
@@ -36,7 +82,8 @@ function installAsdfPlugins() {
 }
 
 function installUv() {
-  if which -s uv ; then
+  if command -v uv &> /dev/null; then
+    echo "uv already installed: $(uv --version)"
     return
   fi
 
@@ -48,8 +95,14 @@ function installUv() {
 }
 
 function installXsv() {
-  if which -s xsv ; then
+  if command -v xsv &> /dev/null; then
     return
+  fi
+
+  if isClaudeCodeWeb; then
+    echo "xsv not available in Claude Code Web, skipping..."
+    echo "Note: xsv is optional for CSV processing"
+    return 0
   fi
 
   echo "xsv not installed, will try to install with homebrew"
@@ -81,18 +134,25 @@ EOF
   echo "Pre-commit hook installed successfully"
 }
 
-## Check that homebrew is installed
-if ! which -s brew ; then
-  echo "Homebrew not installed, please install it and then run again" >&2
-  echo "    https://brew.sh/" >&2
-  exit 1
-fi
+## Check environment and install tools accordingly
+if isClaudeCodeWeb; then
+  echo "Running in Claude Code Web environment, using direct installation"
+  echo "Install Hugo directly"
+  installHugoDirectly || exit 1
+else
+  ## Check that homebrew is installed
+  if ! which -s brew ; then
+    echo "Homebrew not installed, please install it and then run again" >&2
+    echo "    https://brew.sh/" >&2
+    exit 1
+  fi
 
-## Install asdf if needed, then all asdf plugins, and all tools in asdf
-echo "Install tools at the correct version"
-installAsdf &&
-  installAsdfPlugins &&
-  asdf install
+  ## Install asdf if needed, then all asdf plugins, and all tools in asdf
+  echo "Install tools at the correct version"
+  installAsdf &&
+    installAsdfPlugins &&
+    asdf install
+fi
 
 ## Install uv and sync project dependencies
 echo "Install uv and sync project dependencies"
