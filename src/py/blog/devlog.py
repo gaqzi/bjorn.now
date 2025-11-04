@@ -612,40 +612,6 @@ def _format_node(node: dict, is_choice_child: bool = False) -> str:
     return "\n\n".join(result_parts)
 
 
-def _collect_choice_blocks(node: dict, result: list[dict]) -> None:
-    """Recursively collect all choice_block children from a node's descendants."""
-    children = node.get("children", [])
-    for child in children:
-        if child.get("type") == "choice_block":
-            result.append(child)
-            # Don't recurse into choice block children - they're part of the block
-        else:
-            # Recursively search in non-choice-block children
-            _collect_choice_blocks(child, result)
-
-
-def _collect_all_content(node: dict, result: list[str]) -> None:
-    """Recursively collect all content from a node and its descendants.
-
-    Skips choice_block nodes and their descendants since they should be
-    formatted separately with their structure preserved.
-    """
-    children = node.get("children", [])
-    for child in children:
-        # Skip choice blocks - they should be formatted separately
-        if child.get("type") == "choice_block":
-            continue
-
-        child_content = child.get("content", "").strip()
-        # Remove bullet marker
-        if child_content.startswith("- "):
-            child_content = textwrap.dedent(child_content.replace("- ", "  ", 1))
-        if child_content:
-            result.append(child_content)
-        # Recursively collect from grandchildren
-        _collect_all_content(child, result)
-
-
 def _add_punctuation(text: str) -> str:
     """Add period to text if it doesn't end with punctuation.
 
