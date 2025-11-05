@@ -34,19 +34,19 @@ fi
 
 # Run checks based on what changed
 if [ "$RUN_LINT" = true ]; then
-  echo "Running lint checks (assets/data/content changed)..."
+  [ -n "$VERBOSE" ] && echo "Running lint checks (assets/data/content changed)..."
   script/hooks/commit-assets-when-introduced || exit 1
   script/lint || exit 1
 fi
 
 if [ "$RUN_TESTS" = true ]; then
-  echo "Running tests (script/src/tests changed)..."
+  [ -n "$VERBOSE" ] && echo "Running tests (script/src/tests changed)..."
   script/test || exit 1
 fi
 
 # If nothing needs to run, report that
 if [ "$RUN_LINT" = false ] && [ "$RUN_TESTS" = false ]; then
-  echo "No relevant changes detected, skipping pre-commit checks"
+  [ -n "$VERBOSE" ] && echo "No relevant changes detected, skipping pre-commit checks"
 fi
 
 exit 0
