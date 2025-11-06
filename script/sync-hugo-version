@@ -1,6 +1,6 @@
 #!/bin/bash
-# A script to help update the go version used across all the files that need
-# it set consistently, relies on asdf to manage the go version.
+# A script to help update the Hugo version used across all the files that need
+# it set consistently, relies on asdf to manage the Hugo version.
 
 : ${HUGO_VERSION:=$1}
 
@@ -8,13 +8,17 @@ if [ -z "$HUGO_VERSION" ]; then
   HUGO_VERSION="latest"
 fi
 
-## Set to the specified version, latest if none specified on the cli
-asdf install gohugo "$HUGO_VERSION"
-asdf local gohugo "$HUGO_VERSION"
-HUGO_VERSION=$(grep gohugo .tool-versions | cut -d' ' -f 2)
+## Set to the specified extended version, latest if none specified on the cli
+asdf install gohugo "extended_$HUGO_VERSION"
+asdf local gohugo "extended_$HUGO_VERSION"
+HUGO_VERSION=$(grep gohugo .tool-versions | cut -d' ' -f 2 | sed 's/extended_//')
 
-## Update Github Actions
-sed -I '' -E "s/hugomods\/hugo:(.*)$/hugomods\/hugo:$HUGO_VERSION/" .github/workflows/build.yml
+## Update Github Actions (using exts- prefix for extended version)
+sed -i -E "s/hugomods\/hugo:(exts-)?[0-9.]+/hugomods\/hugo:exts-$HUGO_VERSION/" .github/workflows/build.yml
 
-## Update docker compose
-sed -I '' -E "s/hugomods\/hugo:(.*)\"/hugomods\/hugo:$HUGO_VERSION\"/" docker-compose.yaml
+## Update docker compose (using exts- prefix for extended version)
+sed -i -E "s/hugomods\/hugo:(exts-)?[0-9.]+\"/hugomods\/hugo:exts-$HUGO_VERSION\"/" docker-compose.yaml
+
+## Update hugo.toml minimum version and ensure extended = true
+sed -i -E "s/min = '[0-9.]+'/min = '$HUGO_VERSION'/" themes/sanitarium/hugo.toml
+sed -i -E "s/extended = false/extended = true/" themes/sanitarium/hugo.toml
