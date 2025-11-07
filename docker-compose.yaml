@@ -1,7 +1,7 @@
 ---
 services:
   hugo:
-    image: "hugomods/hugo:0.147.8"
+    image: "hugomods/hugo:exts-0.152.2"
     command: hugo server
     ports:
       - "1313:1313"
