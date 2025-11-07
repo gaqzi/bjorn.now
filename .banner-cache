@@ -1,109 +1,109 @@
 {
-  "static/img/banners/2025-05-03-effective-meetings.png": {
+  "assets/img/banners/2025-05-03-effective-meetings.png": {
     "content_checksum": "2e046ee3acf249141417dc062f512da3",
     "file_checksum": "ccf58e7233dd9500ad2a3b6d7171d8ab"
   },
-  "static/img/banners/2024-04-15-day-to-day-automation-using-alfred.png": {
+  "assets/img/banners/2024-04-15-day-to-day-automation-using-alfred.png": {
     "content_checksum": "c66579f2893061855ba14307cac987e3",
     "file_checksum": "d88d93dd24c8f0d49c4d4370c65b46e6"
   },
-  "static/img/banners/2024-02-01-how-to-make-docker-pull-resume-layer-downloads.png": {
+  "assets/img/banners/2024-02-01-how-to-make-docker-pull-resume-layer-downloads.png": {
     "content_checksum": "38db32029b7b25f9d7917d111dba64d7",
     "file_checksum": "da2c870992bdb496c4f43e5c710765cc"
   },
-  "static/img/banners/2022-02-05-sticky-blocks-in-roam-research.png": {
+  "assets/img/banners/2022-02-05-sticky-blocks-in-roam-research.png": {
     "content_checksum": "9a22080e2d2406411645030528aee1b4",
     "file_checksum": "28d4392a310d53c5da4fed56eca9914f"
   },
-  "static/img/banners/2015-11-14-how-to-ping-a-lost-apple-watch.png": {
+  "assets/img/banners/2015-11-14-how-to-ping-a-lost-apple-watch.png": {
     "content_checksum": "1a0429f13da3979c4f2c64a4339e0cb4",
     "file_checksum": "5f9ea24ecd2e10b0507d2888435453f4"
   },
-  "static/img/banners/2015-10-27-testing-against-many-versions-of-python-on-snap-ci.png": {
+  "assets/img/banners/2015-10-27-testing-against-many-versions-of-python-on-snap-ci.png": {
     "content_checksum": "fba21e4dbd49516c2f9de3a5f96ae5e0",
     "file_checksum": "8ecc513b47ac2b0e76509153d2bceffb"
   },
-  "static/img/banners/2013-01-18-python-and-its-included-batteries.png": {
+  "assets/img/banners/2013-01-18-python-and-its-included-batteries.png": {
     "content_checksum": "3693d9ca2e8ce7401f40614c111934c6",
     "file_checksum": "ebf18a94e5553748e67cbf8064fb681e"
   },
-  "static/img/banners/2011-01-07-keeping-your-varnish-farm-in-sync.png": {
+  "assets/img/banners/2011-01-07-keeping-your-varnish-farm-in-sync.png": {
     "content_checksum": "b10f0296315baa68ee181717f098c5aa",
     "file_checksum": "db8ca7f0c9d81ff6840b14e7d53575ae"
   },
-  "static/img/banners/2010-12-05-howto-setting-up-a-wikileaks-mirror.png": {
+  "assets/img/banners/2010-12-05-howto-setting-up-a-wikileaks-mirror.png": {
     "content_checksum": "adb33cffe1d1af44ee90f501883a37ee",
     "file_checksum": "b694aac8be1e0762bcbc5caaad68359d"
   },
-  "static/img/banners/2010-12-04-howto-satta-upp-en-wikileaksspegling.png": {
+  "assets/img/banners/2010-12-04-howto-satta-upp-en-wikileaksspegling.png": {
     "content_checksum": "766bb12bb56e0199ecb463d402a2b587",
     "file_checksum": "643511d10a8822285524afcd6f941ba2"
   },
-  "static/img/banners/2010-02-21-how-to-disable-bold-fonts-in-xterm.png": {
+  "assets/img/banners/2010-02-21-how-to-disable-bold-fonts-in-xterm.png": {
     "content_checksum": "b2ec288782b8f2c28a36030a08ab2096",
     "file_checksum": "cc9d5fb7ca48dc42fba666b2aa11a345"
   },
-  "static/img/banners/2025-07-07-caching-go-on-ci-without-surprises.png": {
+  "assets/img/banners/2025-07-07-caching-go-on-ci-without-surprises.png": {
     "content_checksum": "510e3f3a64d9276e43c9f49ac2827a21",
     "file_checksum": "8667d1f52f945be6cc9a404cca289860"
   },
-  "static/img/banners/2025-07-which-hats-are-you-wearing.png": {
+  "assets/img/banners/2025-07-which-hats-are-you-wearing.png": {
     "content_checksum": "8a873b3a5fa48fc47e75bb8a31b8307a",
     "file_checksum": "5ff8d5437b09505813326506e0995438"
   },
-  "static/img/banners/2025-07-your-name-is-still-on-it.png": {
+  "assets/img/banners/2025-07-your-name-is-still-on-it.png": {
     "content_checksum": "a0515bd3d81036a7e5ce901dd671f384",
     "file_checksum": "661bd9ebedeac7e91308cc0679ef6fcb"
   },
-  "static/img/banners/2025-08-when-everyone-gets-a-genie.png": {
+  "assets/img/banners/2025-08-when-everyone-gets-a-genie.png": {
     "content_checksum": "92f85a8f2965f355056b5fce32d14e18",
     "file_checksum": "2c224e65c20d5889c28ccbc5ef8f76ff"
   },
-  "static/img/banners/2025-08-more-frequent-smaller-posts.png": {
+  "assets/img/banners/2025-08-more-frequent-smaller-posts.png": {
     "content_checksum": "4a84d5ac373572ebd59abd3dff411c0b",
     "file_checksum": "d36387ca55bad3a3e298f96aa19a707e"
   },
-  "static/img/banners/2025-08-12-anthropic-on-prompting-for-agents.png": {
+  "assets/img/banners/2025-08-12-anthropic-on-prompting-for-agents.png": {
     "content_checksum": "5cae9938785886b634984d7b3ae38d46",
     "file_checksum": "3e41f33edc6942004900360a1bbaa0d4"
   },
-  "static/img/banners/2025-08-14-dikw-pyramid-when-working-with-genies.png": {
+  "assets/img/banners/2025-08-14-dikw-pyramid-when-working-with-genies.png": {
     "content_checksum": "19fa2b7a4fa6cac85897e81a0352f3d5",
     "file_checksum": "e6779c092d7f088679387cdebe0ee1fc"
   },
-  "static/img/banners/2025-08-21-what-makes-a-good-software-engineer.png": {
+  "assets/img/banners/2025-08-21-what-makes-a-good-software-engineer.png": {
     "content_checksum": "8f05c484ea626a8ac189b721966ceef0",
     "file_checksum": "6d4493137e317ddaa28c13e35458de1c"
   },
-  "static/img/banners/2025-08-24-angry-at-the-genie.png": {
+  "assets/img/banners/2025-08-24-angry-at-the-genie.png": {
     "content_checksum": "091e9afdcccef7f2b367b4ef1244ddca",
     "file_checksum": "6dde6c8e5581a42a5f0964cdc4eaa6d7"
   },
-  "static/img/banners/2025-08-24-reasonable-assumptions.png": {
+  "assets/img/banners/2025-08-24-reasonable-assumptions.png": {
     "content_checksum": "b5f5776f5468230d55d73593289487f9",
     "file_checksum": "f76c09195f3f25f15f289d717f5f6566"
   },
-  "static/img/banners/2025-09-26-maybe-lets-see-in-a-few-weeks.png": {
+  "assets/img/banners/2025-09-26-maybe-lets-see-in-a-few-weeks.png": {
     "content_checksum": "761c54aba486ee47601f7cc7060dafa7",
     "file_checksum": "05ff845efd876f63cd2957c72c55e1dc"
   },
-  "static/img/banners/2025-09-23-21st-century-digital-society.png": {
+  "assets/img/banners/2025-09-23-21st-century-digital-society.png": {
     "content_checksum": "801002898796f2279b74c9fde6b45f32",
     "file_checksum": "a5c0b55592c36aeb6f5fcd242c930ab1"
   },
-  "static/img/banners/2025-09-07-arvid-nordquist-coffee-recipe.png": {
+  "assets/img/banners/2025-09-07-arvid-nordquist-coffee-recipe.png": {
     "content_checksum": "2ae31bee30b3a4fe212de498b58ed99d",
     "file_checksum": "ffcb3a48f44b7bf2d28ba668a14a9a8f"
   },
-  "static/img/banners/2025-09-07-concise-isnt-enough-explain-it.png": {
+  "assets/img/banners/2025-09-07-concise-isnt-enough-explain-it.png": {
     "content_checksum": "6150ca0aeef925477fb06586bd9ebbc5",
     "file_checksum": "8f40ffd8c619c55941d5a66f41151660"
   },
-  "static/img/banners/2025-09-07-create-space-for-serendipity.png": {
+  "assets/img/banners/2025-09-07-create-space-for-serendipity.png": {
     "content_checksum": "13f314ee64b430d92499d694bba821b8",
     "file_checksum": "874297650d9175e6ec9c5ad6f3079d44"
   },
-  "static/img/banners/2025-08-28-does-the-word-change-the-quick-fix.png": {
+  "assets/img/banners/2025-08-28-does-the-word-change-the-quick-fix.png": {
     "content_checksum": "a493b0d93ba56c46e8fd1360a866b352",
     "file_checksum": "7512003a32b0e253bf733cb897c8c114"
   }
