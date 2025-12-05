@@ -1,5 +1,97 @@
 #!/bin/bash
 
+# ============================================================
+# Utility Functions
+# ============================================================
+
+# Color constants for logging
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Log informational messages (only with VERBOSE=true)
+function log_info() {
+  if [[ "${VERBOSE}" == "true" ]]; then
+    echo -e "${BLUE}[INFO][bootstrap]${NC} $1"
+  fi
+}
+
+# Log error messages (always shown)
+function log_error() {
+  echo -e "${RED}[ERROR][bootstrap]${NC} $1" >&2
+}
+
+# Detect the operating system
+function detectOS() {
+  case "$(uname -s)" in
+    Darwin) echo "macos" ;;
+    Linux) echo "linux" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+# Detect CPU architecture (x86_64 or arm64 only)
+function detectArch() {
+  local arch=$(uname -m)
+  case "$arch" in
+    x86_64)
+      echo "x86_64"
+      ;;
+    aarch64|arm64)
+      echo "arm64"
+      ;;
+    *)
+      echo "unknown"
+      ;;
+  esac
+}
+
+# Map normalized arch to Hugo's naming convention
+function getHugoArch() {
+  local arch="$1"
+  case "$arch" in
+    x86_64) echo "amd64" ;;
+    arm64)  echo "arm64" ;;
+    *)      echo "unknown" ;;
+  esac
+}
+
+# Map normalized arch to asdf's naming convention
+function getAsdfArch() {
+  local arch="$1"
+  case "$arch" in
+    x86_64) echo "amd64" ;;
+    arm64)  echo "arm64" ;;
+    *)      echo "unknown" ;;
+  esac
+}
+
+# Map normalized arch to xsv's Rust target naming convention
+function getXsvArch() {
+  local arch="$1"
+  case "$arch" in
+    x86_64) echo "x86_64" ;;
+    arm64)  echo "aarch64" ;;
+    *)      echo "unknown" ;;
+  esac
+}
+
+# Add line to RC file if not already present (idempotent)
+function add_to_rc_file() {
+  local rc_file="$1"
+  local line_to_add="$2"
+
+  if [ -f "$rc_file" ]; then
+    if ! grep -qF "$line_to_add" "$rc_file"; then
+      echo "$line_to_add" >> "$rc_file"
+      log_info "Added configuration to $rc_file"
+    else
+      log_info "Configuration already present in $rc_file"
+    fi
+  fi
+}
+
+# Check if running in Claude Code Web environment
 function isClaudeCodeWeb() {
   [[ -n "${CLAUDE_CODE_REMOTE}" ]]
 }
@@ -8,34 +100,43 @@ function installHugoDirectly() {
   local hugo_version=$(grep '^gohugo' .tool-versions | awk '{print $2}')
   local install_dir="$HOME/.local/bin"
 
+  # Detect architecture
+  local arch=$(detectArch)
+  local hugo_arch=$(getHugoArch "$arch")
+
+  if [[ "$hugo_arch" == "unknown" ]]; then
+    log_error "Hugo not available for architecture: $(uname -m)"
+    return 1
+  fi
+
   if [[ -z "${hugo_version}" ]]; then
-    echo "Failed to read Hugo version from .tool-versions" >&2
+    log_error "Failed to read Hugo version from .tool-versions"
     return 1
   fi
 
   if command -v hugo &> /dev/null; then
-    echo "Hugo already installed: $(hugo version)"
+    log_info "Hugo already installed: $(hugo version)"
     return 0
   fi
 
-  echo "Installing Hugo ${hugo_version} directly..."
+  log_info "Installing Hugo ${hugo_version} for linux-${hugo_arch}..."
   mkdir -p "${install_dir}"
 
   local tmp_dir=$(mktemp -d)
   cd "${tmp_dir}" || return 1
 
-  wget -q "https://github.com/gohugoio/hugo/releases/download/v${hugo_version}/hugo_extended_${hugo_version}_linux-amd64.tar.gz" || {
-    echo "Failed to download Hugo" >&2
+  wget -q "https://github.com/gohugoio/hugo/releases/download/v${hugo_version}/hugo_extended_${hugo_version}_linux-${hugo_arch}.tar.gz" || {
+    log_error "Failed to download Hugo"
     return 1
   }
 
-  tar -xzf "hugo_extended_${hugo_version}_linux-amd64.tar.gz" || {
-    echo "Failed to extract Hugo" >&2
+  tar -xzf "hugo_extended_${hugo_version}_linux-${hugo_arch}.tar.gz" || {
+    log_error "Failed to extract Hugo"
     return 1
   }
 
   mv hugo "${install_dir}/" || {
-    echo "Failed to move Hugo to ${install_dir}" >&2
+    log_error "Failed to move Hugo to ${install_dir}"
     return 1
   }
 
@@ -43,36 +144,228 @@ function installHugoDirectly() {
   rm -rf "${tmp_dir}"
 
   export PATH="${install_dir}:${PATH}"
-  echo "Hugo installed successfully: $(hugo version)"
+  log_info "Hugo installed successfully: $(hugo version)"
 }
 
-function installAsdf() {
-  if which -s asdf ; then
-    return
+# ============================================================
+# Linux-Specific Installation Functions
+# ============================================================
+
+function installLinuxDependencies() {
+  log_info "Installing system dependencies for building Python and other tools"
+
+  sudo apt-get update -qq || {
+    log_error "Failed to update apt package lists"
+    return 1
+  }
+
+  # Python build dependencies + essential tools
+  sudo apt-get install -qq -y \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncurses5-dev \
+    libffi-dev \
+    liblzma-dev \
+    libgdbm-dev \
+    libgdbm-compat-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    tk-dev \
+    uuid-dev \
+    wget \
+    curl \
+    git || {
+    log_error "Failed to install system dependencies"
+    return 1
+  }
+
+  log_info "System dependencies installed successfully"
+}
+
+function installAsdfLinux() {
+  if command -v asdf &> /dev/null; then
+    log_info "asdf already installed: $(asdf --version)"
+    return 0
   fi
 
-  echo "asdf not installed, will try to install with homebrew"
+  # Detect architecture
+  local arch=$(detectArch)
+  local asdf_arch=$(getAsdfArch "$arch")
+
+  if [[ "$asdf_arch" == "unknown" ]]; then
+    log_error "asdf not available for architecture: $(uname -m)"
+    return 1
+  fi
+
+  local asdf_version="v0.18.0"
+  local install_dir="$HOME/.local/bin"
+  local tmp_dir=$(mktemp -d)
+
+  log_info "Installing asdf ${asdf_version} for linux_${asdf_arch}..."
+  mkdir -p "${install_dir}"
+
+  cd "${tmp_dir}" || return 1
+
+  # Download pre-compiled binary
+  local download_url="https://github.com/asdf-vm/asdf/releases/download/${asdf_version}/asdf_${asdf_version}_linux_${asdf_arch}.tar.gz"
+
+  wget -q "${download_url}" || {
+    log_error "Failed to download asdf from ${download_url}"
+    return 1
+  }
+
+  tar -xzf "asdf_${asdf_version}_linux_${asdf_arch}.tar.gz" || {
+    log_error "Failed to extract asdf"
+    return 1
+  }
+
+  # Extract binary to install directory
+  mv bin/asdf "${install_dir}/" || {
+    log_error "Failed to move asdf to ${install_dir}"
+    return 1
+  }
+
+  cd - > /dev/null
+  rm -rf "${tmp_dir}"
+
+  # Add to PATH for this session
+  export PATH="${install_dir}:${PATH}"
+  export PATH="$HOME/.asdf/shims:${PATH}"
+
+  # Configure shell rc files (separate operations for independent checking)
+  local local_bin_line='export PATH="$HOME/.local/bin:$PATH"'
+  local asdf_shims_line='export PATH="$HOME/.asdf/shims:$PATH"'
+
+  # Update .bashrc
+  add_to_rc_file "$HOME/.bashrc" "$local_bin_line"
+  add_to_rc_file "$HOME/.bashrc" "$asdf_shims_line"
+
+  # Update .zshrc
+  add_to_rc_file "$HOME/.zshrc" "$local_bin_line"
+  add_to_rc_file "$HOME/.zshrc" "$asdf_shims_line"
+
+  log_info "asdf installed successfully: $(asdf --version)"
+  log_info "Note: Restart your shell or source your rc file for PATH changes"
+}
+
+function installXsvLinux() {
+  if command -v xsv &> /dev/null; then
+    log_info "xsv already installed"
+    return 0
+  fi
+
+  # Detect architecture
+  local arch=$(detectArch)
+  local xsv_arch=$(getXsvArch "$arch")
+
+  if [[ "$xsv_arch" == "unknown" ]]; then
+    log_info "xsv not available for architecture: $(uname -m), skipping..."
+    log_info "Note: xsv is optional for CSV processing"
+    return 0  # Optional tool, skip gracefully
+  fi
+
+  local xsv_version="0.13.0"
+  local install_dir="$HOME/.local/bin"
+  local tmp_dir=$(mktemp -d)
+
+  log_info "Installing xsv ${xsv_version} for ${xsv_arch}-unknown-linux-musl..."
+  mkdir -p "${install_dir}"
+
+  cd "${tmp_dir}" || return 1
+
+  # Download musl build (static linking, better portability)
+  local download_url="https://github.com/BurntSushi/xsv/releases/download/${xsv_version}/xsv-${xsv_version}-${xsv_arch}-unknown-linux-musl.tar.gz"
+
+  wget -q "${download_url}" || {
+    log_error "Failed to download xsv (optional tool), skipping..."
+    log_info "Note: xsv is optional for CSV processing"
+    return 0  # Optional tool, return success
+  }
+
+  tar -xzf "xsv-${xsv_version}-${xsv_arch}-unknown-linux-musl.tar.gz" || {
+    log_error "Failed to extract xsv, skipping..."
+    return 0
+  }
+
+  mv xsv "${install_dir}/" || {
+    log_error "Failed to move xsv to ${install_dir}, skipping..."
+    return 0
+  }
+
+  cd - > /dev/null
+  rm -rf "${tmp_dir}"
+
+  log_info "xsv installed successfully"
+}
+
+# ============================================================
+# macOS-Specific Installation Functions
+# ============================================================
+
+function installAsdfMac() {
+  if command -v asdf &> /dev/null; then
+    log_info "asdf already installed"
+    return 0
+  fi
+
+  log_info "asdf not installed, installing with homebrew"
   if ! brew install asdf; then
-    echo "Failed to install asdf" >&2
-    exit 1
+    log_error "Failed to install asdf"
+    return 1
   fi
 
-  bash_line=$(brew info asdf | grep asdf/libexec/asdf.sh)
-  if [ -z "$bash_line" ]; then
-    echo "Didn't find the shell install script for bash/zsh to auto-install asdf in your shell" >&2
-    echo "Run 'brew info asdf' to see how" >&2
-    exit 1
+  # Get the source line from brew info
+  local asdf_setup_line=$(brew info asdf | grep 'asdf/libexec/asdf.sh' | head -n1)
+  if [ -z "$asdf_setup_line" ]; then
+    log_error "Didn't find the shell install script for bash/zsh to auto-install asdf in your shell"
+    log_error "Run 'brew info asdf' to see how"
+    return 1
   fi
 
-  echo "Auto-installing asdf shell setup in:"
-  echo "    - $HOME/.bashrc for bash"
-  echo "$bash_line" >> $HOME/.bashrc
+  # Add to shell RC files (uses shared helper)
+  add_to_rc_file "$HOME/.bashrc" "$asdf_setup_line"
+  add_to_rc_file "$HOME/.zshrc" "$asdf_setup_line"
 
-  echo "    - $HOME/.zshrc for zsh"
-  echo "$bash_line" >> $HOME/.zshrc
-
-  echo "Restart your shell for changes to take effect"
+  log_error "Restart your shell for changes to take effect"
   exit 1
+}
+
+function installXsvMac() {
+  if command -v xsv &> /dev/null; then
+    log_info "xsv already installed"
+    return 0
+  fi
+
+  log_info "xsv not installed, installing with homebrew"
+  if ! brew install xsv; then
+    log_error "Failed to install xsv"
+    return 1
+  fi
+
+  log_info "xsv installed successfully"
+}
+
+# ============================================================
+# Platform-Agnostic Installation Functions
+# ============================================================
+
+function installAsdf() {
+  case "$OS_TYPE" in
+    macos)
+      installAsdfMac
+      ;;
+    linux)
+      installAsdfLinux
+      ;;
+    *)
+      log_error "Unsupported OS for asdf installation: $OS_TYPE"
+      return 1
+      ;;
+  esac
 }
 
 function installAsdfPlugins() {
@@ -83,77 +376,103 @@ function installAsdfPlugins() {
 
 function installUv() {
   if command -v uv &> /dev/null; then
-    echo "uv already installed: $(uv --version)"
+    log_info "uv already installed: $(uv --version)"
     return
   fi
 
-  echo "uv not installed, will try to install with pip"
+  log_info "uv not installed, will try to install with pip"
   if ! pip install uv; then
-    echo "Failed to install uv" >&2
+    log_error "Failed to install uv"
     exit 1
   fi
 }
 
 function installXsv() {
-  if command -v xsv &> /dev/null; then
-    return
-  fi
-
   if isClaudeCodeWeb; then
-    echo "xsv not available in Claude Code Web, skipping..."
-    echo "Note: xsv is optional for CSV processing"
+    log_info "xsv not available in Claude Code Web, skipping..."
+    log_info "Note: xsv is optional for CSV processing"
     return 0
   fi
 
-  echo "xsv not installed, will try to install with homebrew"
-  if ! brew install xsv; then
-    echo "Failed to install xsv" >&2
-    exit 1
-  fi
+  case "$OS_TYPE" in
+    macos)
+      installXsvMac
+      ;;
+    linux)
+      installXsvLinux
+      ;;
+    *)
+      log_error "Unsupported OS for xsv installation: $OS_TYPE"
+      return 1
+      ;;
+  esac
 }
 
 function installPreCommitHook() {
   local hook_path=".git/hooks/pre-commit"
 
   if [ -f "$hook_path" ]; then
-    echo "Pre-commit hook already exists, skipping installation"
+    log_info "Pre-commit hook already exists, skipping installation"
     return
   fi
 
-  echo "Installing pre-commit hook to run linting checks"
+  log_info "Installing pre-commit hook to run linting checks"
 
   ln -s $(pwd)/script/hooks/pre-commit .git/hooks/pre-commit
-  echo "Pre-commit hook installed successfully"
+  log_info "Pre-commit hook installed successfully"
 }
 
-## Check environment and install tools accordingly
-if isClaudeCodeWeb; then
-  echo "Running in Claude Code Web environment, using direct installation"
-  echo "Install Hugo directly"
-  installHugoDirectly || exit 1
-else
-  ## Check that homebrew is installed
-  if ! which -s brew ; then
-    echo "Homebrew not installed, please install it and then run again" >&2
-    echo "    https://brew.sh/" >&2
-    exit 1
-  fi
+# ============================================================
+# Main Execution
+# ============================================================
 
-  ## Install asdf if needed, then all asdf plugins, and all tools in asdf
-  echo "Install tools at the correct version"
-  installAsdf &&
-    installAsdfPlugins &&
-    asdf install
+## Detect OS and architecture
+OS_TYPE=$(detectOS)
+ARCH=$(detectArch)
+
+if [[ "$ARCH" == "unknown" ]] && ! isClaudeCodeWeb; then
+  log_error "Unsupported CPU architecture: $(uname -m)"
+  log_error "This script supports x86_64 and ARM64 architectures"
+  exit 1
 fi
 
-## Install uv and sync project dependencies
-echo "Install uv and sync project dependencies"
-installUv &&
-  uv sync --group dev
+if isClaudeCodeWeb; then
+  log_info "Running in Claude Code Web environment"
+  log_info "Installing Hugo directly"
+  installHugoDirectly || exit 1
+elif [[ "$OS_TYPE" == "unknown" ]]; then
+  log_error "Unsupported operating system: $(uname -s)"
+  log_error "This script supports macOS and Linux only"
+  exit 1
+else
+  # Platform-specific setup
+  if [[ "$OS_TYPE" == "macos" ]]; then
+    # macOS: Check Homebrew is available
+    if ! command -v brew &> /dev/null; then
+      log_error "Homebrew not installed, please install it and then run again"
+      log_error "    https://brew.sh/"
+      exit 1
+    fi
+  elif [[ "$OS_TYPE" == "linux" ]]; then
+    # Linux: Install system dependencies
+    log_info "Installing Linux system dependencies"
+    installLinuxDependencies || exit 1
+  fi
 
-## Install xsv for CSV processing
-echo "Install xsv for CSV processing"
+  # Install development tools (works on both platforms)
+  log_info "Installing development tools at correct versions"
+  installAsdf &&
+    installAsdfPlugins &&
+    asdf install || exit 1
+fi
+
+## Common installation path for all environments
+log_info "Installing uv and syncing project dependencies"
+installUv &&
+  uv sync --group dev || exit 1
+
+log_info "Installing xsv for CSV processing"
 installXsv
 
-## Install pre-commit hook
+log_info "Installing pre-commit hook"
 installPreCommitHook
