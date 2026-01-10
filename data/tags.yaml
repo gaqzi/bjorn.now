@@ -148,6 +148,11 @@ alfredapp:
   type: tool
   description: Alfred productivity app for macOS
 
+claude-code:
+  display: Claude Code
+  type: tool
+  description: Anthropic's coding agent, working with it (and likely in anger)
+
 docker:
   display: Docker
   type: tool
