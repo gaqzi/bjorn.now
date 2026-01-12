@@ -18,9 +18,11 @@
                         {{ $avatar := $avatarResource.Resize "400x400" -}}
                         <figure>
                             <img src="{{ $avatar.RelPermalink }}" alt="{{ $author.displayName }}" class="author-avatar" loading="lazy">
+			    <p><a href="{{ $avatarResource.RelPermalink }}">Full sized photo</a><br>
                             {{ with $author.avatar_credit -}}
-                                <p>Photo: {{ . | safeHTML }}</p>
+                                Photo: {{ . | safeHTML }}
                             {{ end -}}
+			    </p>
                         </figure>
                     {{ end -}}
                 {{ end }}
