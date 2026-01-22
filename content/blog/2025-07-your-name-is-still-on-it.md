@@ -29,7 +29,7 @@ As we were talking about how he was using it he said something that stopped me c
 
 He's already caught the AI making things up. He has to check every line, every reference. He explicitly asks it to give him the references so he can look them up himself. And if I understood correctly, this isn't significantly different from when juniors do the work for him. Because it was still his name on it. He needs to validate it. Whatever he puts his name on and sends out has to be right.
 
-And that's when something clicked for me. [Remember how I was talking about the different hats we wear?][which-hat] Well, here's the thing: you _can_ outsource wearing the hat. You _can_ have the genie do the work. But it's still your name on it. No one else cares if you outsourced it, they only see your name on it. You can't blame the genie for a shit job. It was your name.
+And that's when something clicked for me. [Remember how I was talking about the different hats we wear?][which-hat] Well, you _can_ outsource wearing the hat. You _can_ have the genie do the work. But it's still your name on it. No one else cares if you outsourced it, they only see your name on it. You can't blame the genie for a shit job. It was your name.
 
 ## What we think we're automating
 
