@@ -39,7 +39,7 @@ Meeting notes are a perfect example. I have access to Google Gemini at work, and
 
 This reminds me of [Chesterton's Fence](https://fs.blog/chestertons-fence/), that principle about not removing a fence until you understand why it was put there. Before you automate away some "boring, pointless thing," maybe ask yourself: why is it that I'm doing this in the first place? Because if you don't understand why it's done, how do you know the automation did it well?
 
-And I wonder if what's really happening is that we're not automating the work, we're automating away our attention to the work. We're not automating the output. We're automating away our understanding of what that output should be. And here's what we lose: [experienced people are the ones who spot strange patterns (or have taste)](https://www.benkuhn.net/impact/) precisely because they've stayed engaged with the work over time. You can't develop that instinct if you're not looking.
+And I wonder if what's really happening is that we're not automating the work, we're automating away our attention to the work. We're not automating the output. We're automating away our understanding of what that output should be. And [experienced people are the ones who spot strange patterns (or have taste)](https://www.benkuhn.net/impact/) precisely because they've stayed engaged with the work over time. You can't develop that instinct if you're not looking.
 
 ## The work worth doing
 
@@ -49,7 +49,7 @@ When you let the genie write code for you and it introduces bugs that you would 
 
 There's a difference between _delegating execution_ and _delegating responsibility_. You _can_ have the genie execute tasks, but you _can't_ delegate the responsibility for the outcome. That's still yours. [The hat][which-hat] is still on your head, even if AI is helping you get things done faster while wearing it.
 
-And here's the thing: there's pride in doing the work well, even the boring bits. Sometimes we might not enjoy the work, but learning to enjoy doing it well will make most things worthwhile. Because there's value in knowing how to do it well, in understanding why it matters.
+And I find pride in doing the work well. Even the boring bits. Sometimes we might not enjoy the work, but doing things well will make most things feel worthwhile. Because there's nuance and understanding you can only get by truly groking something, and that's when you can safely change and improve it.
 
 [which-hat]: {{< relref "2025-07-which-hats-are-you-wearing.md" >}}
 [which-hat-4999]: {{< relref "2025-07-which-hats-are-you-wearing.md#the-9999-skill" >}}
