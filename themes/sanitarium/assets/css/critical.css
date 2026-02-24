@@ -63,6 +63,9 @@ body {
 
 /* Masthead - always visible */
 header.masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: var(--space-md) 0;
     margin-bottom: var(--space-md);
     border-bottom: var(--border-width-standard) solid var(--border-color-standard);
@@ -74,10 +77,7 @@ header.masthead a {
     font-family: var(--main-heading-font-family);
     letter-spacing: -0.02em;
     color: CanvasText;
-    text-decoration: underline;
-    text-decoration-color: var(--main-accent-color);
-    text-decoration-thickness: 2px;
-    text-underline-offset: 4px;
+    text-decoration: none;
 }
 
 main {
@@ -107,11 +107,23 @@ a:hover {
     color: CanvasText;
 }
 
+.article-list h1 a,
+a:has(hgroup) {
+    text-decoration: none;
+}
+
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+    text-decoration: none;
+}
+
 /* Basic meta styling for above-fold */
 .meta {
     font-size: 0.85em;
     margin-bottom: var(--space-sm);
     font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
 }
 
 /* Mobile critical */
