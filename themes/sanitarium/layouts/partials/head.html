@@ -9,9 +9,12 @@
 {{ partial "head/css.html" . }}
 
 {{ if .Site.Params.enableCodeHighlighting }}
-{{ $highlight := resources.Get "css/zenburn.css" | resources.Minify | resources.Fingerprint }}
-<link rel="preload" href="{{ $highlight.RelPermalink }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="{{ $highlight.RelPermalink }}"></noscript>
+{{ $highlight := resources.Get "css/zenburn.css" }}
+{{- if not hugo.IsDevelopment }}
+  {{- $highlight = $highlight | minify | fingerprint }}
+{{- end }}
+<link rel="preload" href="{{ $highlight.RelPermalink }}" {{ with $highlight.Data }}{{ with .Integrity }}integrity="{{ . }}" crossorigin="anonymous" {{ end }}{{ end }}as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="{{ $highlight.RelPermalink }}" {{ with $highlight.Data }}{{ with .Integrity }}integrity="{{ . }}" crossorigin="anonymous" {{ end }}{{ end }}></noscript>
 {{ end }}
 
 {{ partial "head/feeds.html" . }}

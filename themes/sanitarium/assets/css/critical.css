@@ -31,10 +31,41 @@
     /* Critical layout variables */
     --border-width-standard: 0.1em;
     --border-color-standard: #888888;
+    --border-color-standard-rgb: 136, 136, 136;
+
+    /* Quote variables (dark mode defaults) */
+    --quote-bg-color-light: #f5f5f5;
+    --quote-bg-color-dark: #2a2a2a;
+    --quote-border-color-light: var(--accent-color-light);
+    --quote-border-color-dark: var(--accent-color-dark);
+    --quote-text-color-light: #121212;
+    --quote-text-color-dark: white;
+    --quote-mark-color-dark: #5e5e5e;
+    --quote-mark-color-light: #ccc;
+    --quote-mark-opacity: 0.8;
+    --quote-border-width: 4px;
+    --quote-bg-color: var(--quote-bg-color-dark);
+    --quote-text-color: var(--quote-text-color-dark);
+    --quote-border-color: var(--quote-border-color-dark);
+    --quote-mark-color: var(--quote-mark-color-dark);
+
+    /* Meta styling */
+    --text-meta-opacity: 0.8;
+    --text-meta-color-dark: #ccc;
+    --text-meta-color-light: #666;
+    --text-meta-color: var(--text-meta-color-dark);
+
+    /* Content block margin */
+    --content-block-margin: var(--space-md) var(--space-lg);
 
     /* Light mode overrides */
     @media (prefers-color-scheme: light), (color-scheme: light) {
         --main-accent-color: var(--accent-color-light);
+        --quote-bg-color: var(--quote-bg-color-light);
+        --quote-text-color: var(--quote-text-color-light);
+        --quote-border-color: var(--quote-border-color-light);
+        --quote-mark-color: var(--quote-mark-color-light);
+        --text-meta-color: var(--text-meta-color-light);
     }
 
     font-size: clamp(1rem, 1vw + 0.75rem, 1.125rem);
@@ -126,8 +157,145 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
     gap: var(--space-sm);
 }
 
-/* Mobile critical */
-@media (max-width: 30rem) {
+/* Date headings */
+.article-list .day__date {
+    color: var(--text-meta-color);
+    opacity: var(--text-meta-opacity);
+    font-weight: normal;
+
+    & a.daily-link {
+        color: inherit;
+        text-decoration: none;
+    }
+}
+
+/* Blockquote critical styles */
+blockquote {
+    position: relative;
+    padding: 1.5em 1em 0.55em 1.5em;
+    border-left: var(--quote-border-width) solid var(--quote-border-color);
+    margin: var(--content-block-margin);
+    border-radius: 3px;
+    overflow: hidden;
+    background-color: var(--quote-bg-color);
+
+    &::after {
+        content: '\201c';
+        font-family: 'Times New Roman', serif;
+        position: absolute;
+        font-size: 6em;
+        left: 0.1em;
+        top: -0.3em;
+        color: var(--quote-mark-color);
+        opacity: var(--quote-mark-opacity);
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    & p {
+        position: relative;
+        color: var(--quote-text-color);
+        font-style: italic;
+        z-index: 1;
+        margin: 0 0 1em 0;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
+
+/* Sidebar navigation - desktop: show as sidebar */
+.sidebar-menu {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 100vh;
+    background-color: Canvas;
+    border-left: 1px solid rgba(var(--border-color-standard-rgb), 0.2);
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.menu-item {
+    margin: 0;
+}
+
+.menu-item.divider {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(var(--border-color-standard-rgb), 0.2);
+}
+
+.menu-item.follow .menu-link {
+    background-color: var(--main-accent-color);
+    color: Canvas;
+}
+
+.menu-link {
+    display: block;
+    padding: 0.15rem 1rem;
+    color: CanvasText;
+    text-decoration: none;
+    border-radius: 6px 0 0 6px;
+    font-family: var(--system-sans);
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: right;
+}
+
+/* Desktop sidebar positioning */
+@media (min-width: 50rem) {
+    .mobile-menu-toggle,
+    .menu-overlay {
+        display: none !important;
+    }
+
+    main {
+        position: relative;
+    }
+
+    .sidebar-menu {
+        display: block;
+        position: absolute;
+        left: calc(-110px);
+        right: auto;
+        width: 90px;
+        border: none;
+        box-shadow: none;
+        height: auto;
+    }
+
+    .menu-link {
+        padding-right: 0.5rem;
+        padding-left: 0.5rem;
+    }
+}
+
+/* Mobile: hide sidebar, show hamburger */
+@media (max-width: calc(50rem - 0.0625rem)) {
+    .mobile-menu-toggle {
+        display: block !important;
+    }
+
+    .sidebar-menu {
+        transform: translateX(100%);
+        width: 280px;
+        padding: 4rem 1.5rem 2rem;
+    }
+
+    body.menu-open .sidebar-menu {
+        transform: translateX(0);
+    }
+
     body {
         padding: 0 var(--space-sm);
     }
@@ -135,6 +303,34 @@ h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
         font-size: 1.5rem;
     }
 }
+
+.mobile-menu-toggle {
+    display: none;
+    background: Canvas;
+    border: 0;
+    padding: 0.75rem;
+    cursor: pointer;
+}
+
+/* Hamburger icon */
+.hamburger-icon {
+    display: block;
+    width: 20px;
+    height: 16px;
+    position: relative;
+}
+
+.hamburger-line {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background-color: CanvasText;
+    border-radius: 1px;
+}
+
+.hamburger-line:nth-child(1) { position: absolute; top: 0; }
+.hamburger-line:nth-child(2) { position: absolute; top: 50%; transform: translateY(-50%); }
+.hamburger-line:nth-child(3) { position: absolute; bottom: 0; }
 
 /* Hide initially because it has a bunch of extra stuff, only enable when main has loaded */
 footer { visibility: hidden; height: 0; }

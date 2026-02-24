@@ -1,22 +1,17 @@
 {{- if .Params.images }}
-  {{- with resources.Get "css/slideshow.css" }}
-    {{- if hugo.IsDevelopment }}
-      <link rel="stylesheet" href="{{ .RelPermalink }}">
-    {{- else }}
-      {{- with . | minify | fingerprint }}
-        <link rel="stylesheet" href="{{ .RelPermalink }}">
-      {{- end }}
-    {{- end }}
+  {{- $css := resources.Get "css/slideshow.css" }}
+  {{- if not hugo.IsDevelopment }}
+    {{- $css = $css | minify | fingerprint }}
+  {{- end }}
+  {{- with $css }}
+    <link rel="stylesheet" href="{{ .RelPermalink }}" {{ with .Data }}{{ with .Integrity }}integrity="{{ . }}" crossorigin="anonymous" {{ end }}{{ end }}>
   {{- end }}
 {{- end }}
-{{- with resources.Get "css/main.css" }}
-  {{- if hugo.IsDevelopment }}
-    <link rel="stylesheet" href="{{ .RelPermalink }}">
-  {{- else }}
-    {{- with . | minify | fingerprint }}
-      <link rel="preload" href="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous" as="style" onload="this.onload=null;this.rel='stylesheet'">
-      <noscript><link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></noscript>
-    {{- end }}
-  {{- end }}
+{{- $css := resources.Get "css/main.css" }}
+{{- if not hugo.IsDevelopment }}
+  {{- $css = $css | minify | fingerprint }}
 {{- end }}
-
+{{- with $css }}
+  <link rel="preload" href="{{ .RelPermalink }}" {{ with .Data }}{{ with .Integrity }}integrity="{{ . }}" crossorigin="anonymous" {{ end }}{{ end }}as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="{{ .RelPermalink }}" {{ with .Data }}{{ with .Integrity }}integrity="{{ . }}" crossorigin="anonymous" {{ end }}{{ end }}></noscript>
+{{- end }}

@@ -112,3 +112,45 @@ Edit `critical.css` to resolve each divergence. Keep it minimal — only add
 the specific properties needed to prevent the flash, don't duplicate entire
 rule blocks from main.css. After editing, re-read both files to confirm no
 divergences remain.
+
+### 7. Visual verification (when text comparison isn't enough)
+
+Text comparison catches property divergences, but some FOUCs come from
+browser defaults interacting with missing styles (e.g., a `<button>` getting
+a default border, or a `<ul>` showing bullets). To verify visually, use
+Playwright to see exactly what the critical-CSS-only state looks like:
+
+1. **Block main.css** — route-abort the stylesheet so only inlined critical
+   CSS renders:
+   ```js
+   await page.route('**/css/main*.css', route => route.abort());
+   await page.goto('http://localhost:1313/', { waitUntil: 'domcontentloaded' });
+   ```
+2. **Screenshot** the critical-CSS-only state
+3. **Unblock and reload** to get the fully styled state:
+   ```js
+   await page.unrouteAll();
+   await page.goto('http://localhost:1313/', { waitUntil: 'networkidle' });
+   ```
+4. **Screenshot** the fully styled state
+5. **Compare** — any visible difference is a potential FOUC
+
+Check both desktop (1280px+) and mobile (375px) viewports since the sidebar
+navigation has completely different layouts at each breakpoint.
+
+## Loading strategy
+
+Both development (`hugo server`) and production (`hugo`) use the same async
+loading pattern for main.css:
+
+```html
+<link rel="preload" href="..." as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="..."></noscript>
+```
+
+The only difference is that production adds `minify | fingerprint` for cache
+busting and SRI integrity attributes. The loading *behavior* is identical,
+which means FOUCs are visible locally during development — not just in
+production. This is intentional. If dev used synchronous loading, FOUCs
+would be hidden locally and only appear after deploy (which is how the
+original bug went unnoticed).
