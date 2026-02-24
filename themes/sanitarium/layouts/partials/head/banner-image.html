@@ -1,11 +1,26 @@
 {{ $ogImage := "" }}
 
+{{/* Check for images array first */}}
+{{ with .Params.images }}
+    {{ if gt (len .) 0 }}
+        {{ $src := (index . 0).src }}
+        {{ $asset := resources.Get (strings.TrimPrefix "/" $src) }}
+        {{ if $asset }}
+            {{ $ogImage = $asset.RelPermalink }}
+        {{ else }}
+            {{ $ogImage = $src }}
+        {{ end }}
+    {{ end }}
+{{ end }}
+
+{{ if not $ogImage }}
 {{ with .Params.image }}
     {{ if reflect.IsMap . }}
         {{ with .path }}{{ $ogImage = . }}{{ end }}
     {{ else }}
         {{ $ogImage = . }}
     {{ end }}
+{{ end }}
 {{ end }}
 
 {{ if and (not $ogImage) (in .Site.Params.bannerSections .Section) }}

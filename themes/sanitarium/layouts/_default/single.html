@@ -18,6 +18,8 @@
     </header>
     {{ end }}
 
+    {{ partial "image-slideshow.html" . }}
+
     <div class="content" {{ if .Params.language }} lang="{{ .Params.language }}"{{ end }}>
         {{ .Content }}
     </div>

@@ -1,3 +1,14 @@
+{{- if .Params.images }}
+  {{- with resources.Get "css/slideshow.css" }}
+    {{- if hugo.IsDevelopment }}
+      <link rel="stylesheet" href="{{ .RelPermalink }}">
+    {{- else }}
+      {{- with . | minify | fingerprint }}
+        <link rel="stylesheet" href="{{ .RelPermalink }}">
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
 {{- with resources.Get "css/main.css" }}
   {{- if hugo.IsDevelopment }}
     <link rel="stylesheet" href="{{ .RelPermalink }}">

@@ -54,8 +54,20 @@
             <pubDate>{{ .PublishDate.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>
             {{- with $authorEmail }}<author>{{ . }}{{ with $authorName }} ({{ . }}){{ end }}</author>{{ end }}
             <guid>{{ .Permalink }}</guid>
-            <description>{{ .Summary | plainify | htmlUnescape }}</description>
-            <content:encoded>{{ print "<![CDATA[" .Content "]]>" | safeHTML }}</content:encoded>
+            {{- /* Plain text image notice for description */ -}}
+            {{- $imageNotice := "" }}
+            {{- with .Params.images }}
+                {{- $imageNotice = printf "[%d image%s, see full post] " (len .) (cond (gt (len .) 1) "s" "") }}
+            {{- end }}
+            <description>{{ printf "%s%s" $imageNotice (.Summary | plainify | htmlUnescape) }}</description>
+            {{- /* Slideshow images as plain <img> for feed readers (keep in sync with image-slideshow.html) */ -}}
+            {{- $images := "" }}
+            {{- with .Params.images }}
+                {{- range . }}
+                    {{- $images = print $images `<img src="` (printf "%s%s" site.BaseURL (strings.TrimPrefix "/" .src) | htmlEscape) `" alt="` (htmlEscape .alt) `">` }}
+                {{- end }}
+            {{- end }}
+            <content:encoded>{{ print "<![CDATA[" $images .Content "]]>" | safeHTML }}</content:encoded>
         </item>
         {{- end }}
     </channel>

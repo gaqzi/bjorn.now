@@ -52,6 +52,20 @@
 - Titles are preserved for navigation links, series navigation, and metadata (better than truncated content)
 - Used for shorter posts where content speaks for itself but title provides context for linking
 
+#### Image Slideshows
+- Add an `images` array to front matter with `src` and `alt` fields:
+  ```yaml
+  images:
+    - src: /img/banners/my-photo.jpg
+      alt: Description of the photo
+    - src: /img/banners/another.png
+      alt: Description of another image
+  ```
+- Images display as an interactive slideshow on the site (swipe, arrows, keyboard nav, lightbox)
+- In RSS feeds, images render as plain `<img>` tags stacked before the content
+- Works with any number of images (single image shows without navigation controls)
+- Template files: `partials/image-slideshow.html` (web) and `_default/rss.xml` (feed) — keep in sync
+
 ## Structure
 - Content: `content/` (Markdown)
 - Templates: `themes/sanitarium/layouts/`

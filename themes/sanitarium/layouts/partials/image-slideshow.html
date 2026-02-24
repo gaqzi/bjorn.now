@@ -1,0 +1,99 @@
+{{- /* NOTE: When adding features here (e.g. captions), update rss.xml too for feed readers */ -}}
+{{- with .Params.images -}}
+{{- if gt (len .) 0 -}}
+{{- $images := . -}}
+{{- $imageCount := len . -}}
+<div class="slideshow-wrapper">
+<div class="image-slideshow" tabindex="0" role="region" aria-label="Image slideshow with {{ $imageCount }} {{ cond (eq $imageCount 1) "image" "images" }}">
+    <div class="slideshow-container">
+        <div class="slideshow-images">
+            <div class="slideshow-track">
+                {{- range $index, $image := $images -}}
+                {{- $imgSrc := $image.src -}}
+                {{- $imgOriginal := $image.src -}}
+                {{- $imgAlt := $image.alt -}}
+
+                {{- /* Try to load as Hugo asset for processing */ -}}
+                {{- $asset := resources.Get (strings.TrimPrefix "/" $image.src) -}}
+                {{- if $asset -}}
+                    {{- /* Generate optimized slideshow image (1600px @ 85% quality WebP) */ -}}
+                    {{- $slideshow := $asset.Fit "1600x1200 q85 webp" -}}
+                    {{- $imgSrc = $slideshow.RelPermalink -}}
+                    {{- /* Keep original format for lightbox */ -}}
+                    {{- $imgOriginal = $asset.RelPermalink -}}
+                {{- end -}}
+
+                <div class="slideshow-slide{{ if eq $index 0 }} active{{ end }}" data-slide="{{ $index }}">
+                    <img src="{{ $imgSrc }}"
+                         alt="{{ $imgAlt }}"
+                         data-original="{{ $imgOriginal }}"
+                         loading="{{ if eq $index 0 }}eager{{ else }}lazy{{ end }}">
+                </div>
+                {{- end -}}
+            </div>
+        </div>
+
+        {{- if gt $imageCount 1 -}}
+        <button class="slideshow-nav slideshow-nav-prev" aria-label="Previous image" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+        <button class="slideshow-nav slideshow-nav-next" aria-label="Next image" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+
+        <div class="slideshow-indicators" role="group" aria-label="Select image">
+            {{- range $index, $image := $images -}}
+            <button class="slideshow-indicator{{ if eq $index 0 }} active{{ end }}"
+                    data-slide="{{ $index }}"
+                    aria-label="Image {{ add $index 1 }} of {{ $imageCount }}"
+                    aria-pressed="{{ if eq $index 0 }}true{{ else }}false{{ end }}"
+                    type="button"></button>
+            {{- end -}}
+        </div>
+        {{- end -}}
+    </div>
+</div>
+
+{{- /* Lightbox modal for full-size images */ -}}
+<div class="slideshow-lightbox" aria-hidden="true" data-total-images="{{ $imageCount }}">
+    <div class="lightbox-overlay"></div>
+    <div class="lightbox-content">
+        <div class="lightbox-controls">
+            {{- if gt $imageCount 1 -}}
+            <button class="lightbox-nav lightbox-nav-prev" aria-label="Previous image" type="button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button class="lightbox-nav lightbox-nav-next" aria-label="Next image" type="button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div class="lightbox-indicators" role="group" aria-label="Select image">
+                <!-- Indicators populated dynamically by JavaScript -->
+            </div>
+            {{- end -}}
+            <button class="lightbox-close" aria-label="Close lightbox" type="button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <div class="lightbox-images">
+            <div class="lightbox-track">
+                <!-- Images populated dynamically by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{{- /* CSS loaded from head/css.html; JS loaded here after the DOM content */ -}}
+{{- $js := resources.Get "js/slideshow.js" | minify | fingerprint -}}
+<script type="module" src="{{ $js.RelPermalink }}"></script>
+{{- end -}}
+{{- end -}}

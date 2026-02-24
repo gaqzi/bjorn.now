@@ -8,6 +8,8 @@
         </hgroup>
     </a>
 
+    {{ partial "image-slideshow.html" . }}
+
     <div class="{{ if and (not .Params.full) .Truncated }}preview{{ end }} post">
         {{ if .Params.full }}
             {{ .Content }}
