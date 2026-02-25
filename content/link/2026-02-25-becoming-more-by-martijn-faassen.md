@@ -30,7 +30,7 @@ Now, there is a counter to this argument, Steve Yegge says in [The AI Vampire](h
 >
 > In this scenario, your company goes out of business. I’m sorry, but your victory over The Man will be pyrrhic, because The Man is about to be kicked in The Balls, since with everyone slacking off, a competitor will take them out pretty fast.
 
-I don't know, maybe? I think there are certain types of jobs that will absolutely end up folding if they keep at current levels of work done without change. History shows sitting on an advantage without adjusting is not optimal for survival. And to be fair, Yegge's post is _against_ the grind culture and about finding a balance augmented by AI and not a hollow shell that commands the genie.
+I don't know, maybe? I think there are certain types of jobs that will absolutely end up folding if they keep at current levels of work done without change. History shows sitting on an advantage without adjusting is not optimal for survival. And to be fair, Yegge's post is _against_ the grind culture and about finding a balance augmented by AI and to not become a hollow shell that commands the genie.
 
 At the same time, I've started my own company, and I'm doing my best to not grind like I did working for others. I do have some runway from that work, but I hope there'll be enough work coming in (or products built that makes money) that I'll make do.
 
