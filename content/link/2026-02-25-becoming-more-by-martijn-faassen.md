@@ -15,7 +15,7 @@ series: ['learning-with-genies']
 > I do know this. I've always leaned on other people's understanding - I've reused computers, programming languages, software libraries, implemented algorithms from books and wikipedia. I've used search engines. This is more broad than software development. I am limited and don't understand everything about the world as it's far, far too much. I stand on the shoulders of giants.
 >
 > And that's okay. I'm still empowered.
-
+>
 > Let this empowerment sink in. Have you realized what this means? Have you realized what you can do now as a software developer?
 >
 > I can use AI to do more. Not be more productive, that's boring and that's debatable.
