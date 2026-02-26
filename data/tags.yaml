@@ -165,6 +165,10 @@ hugo:
   display: Hugo
   type: tool
 
+gas-town:
+  display: Gas Town
+  type: tool
+
 git:
   display: git
   type: tool
