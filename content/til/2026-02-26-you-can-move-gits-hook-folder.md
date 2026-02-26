@@ -11,3 +11,7 @@ series: []
 ---
 Use `git config core.hooksPath script/hooks` and it'll use the scripts in `script/hooks` as hooks in the git project. Version controlled, and no need to update symlinks as scripts come and go.
 <!--more-->
+
+The way I have historically managed the hooks is by having a `script/bootstrap` that symlinks scripts, and then hopefully my team mates run bootstrap when something changes.
+
+So this is a nice way of making that entire problem go away.
