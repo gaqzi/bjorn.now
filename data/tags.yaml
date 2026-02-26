@@ -165,6 +165,10 @@ hugo:
   display: Hugo
   type: tool
 
+git:
+  display: git
+  type: tool
+
 github:
   display: GitHub
   type: tool
