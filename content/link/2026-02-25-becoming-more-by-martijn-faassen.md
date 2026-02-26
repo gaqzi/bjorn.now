@@ -34,6 +34,6 @@ I don't know, maybe? I think there are certain types of jobs that will absolutel
 
 At the same time, I've started my own company, and I'm doing my best to not grind like I did working for others. I do have some runway from that work, but I hope there'll be enough work coming in (or products built that makes money) that I'll make do.
 
-Instead, I have some work that helps me stay afloat, and it has given me time where I can play and explore. Maybe I can leverage it soon, maybe it becomes a rusty tool in toolbox, or the cornerstone for something new.
+Instead, I have some work that helps me stay afloat, and it has given me time where I can play and explore. Maybe I can leverage it soon, maybe it becomes a rusty tool in the toolbox, or the cornerstone for something new.
 
 Either way, I'm becoming more, as Martijn said.
