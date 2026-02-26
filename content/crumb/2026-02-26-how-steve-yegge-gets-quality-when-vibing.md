@@ -11,7 +11,7 @@ daily: ['2026-02-26']
 series: ['working-with-genies']
 ---
 
-I have been wondering how Steve Yegge gets quality when vibe coding and this seems to be how, from the emergency manual [Tending the Invisible Garden](https://steve-yegge.medium.com/gas-town-emergency-user-manual-cf0e4556d74b#7804):
+I have been wondering how Steve Yegge gets quality when vibing and this seems to be how, from the emergency manual [Tending the Invisible Garden](https://steve-yegge.medium.com/gas-town-emergency-user-manual-cf0e4556d74b#7804):
 
 > When you work with Gas Town, you don’t usually have time to inspect the code you’re creating. That’s not your role. But you need to make sure the code meets your quality bar. How do you ensure your garden is healthy if you can’t see it?
 >
