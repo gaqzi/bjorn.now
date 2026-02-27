@@ -32,6 +32,8 @@ from urllib.parse import urlparse
 
 import frontmatter
 
+from blog.optimize_png import optimize_files
+
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
@@ -438,6 +440,13 @@ def generate_all(args):
                 generated_banners.append(abs_banner)
 
             browser.close()
+
+        # Optimize PNGs losslessly
+        if generated_banners:
+            count, total_before, total_after = optimize_files(generated_banners)
+            saved = total_before - total_after
+            pct = (saved / total_before * 100) if total_before else 0
+            print(f"Optimized {count} PNG(s): saved {saved // 1024}K ({pct:.0f}%)")
 
         # Save cache
         cache_path.write_text(json.dumps(cache, indent=2) + "\n")

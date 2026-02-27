@@ -1,0 +1,66 @@
+#!/usr/bin/env -S uv run python3
+"""
+Losslessly optimize PNG images using oxipng.
+
+Usage:
+  script/optimize-images [paths...]          # Optimize specific files or directories
+  script/optimize-images                     # Optimize assets/img/banners/ by default
+  script/optimize-images --dry-run           # Show what would be optimized
+"""
+
+import argparse
+import sys
+from pathlib import Path
+
+from blog.optimize_png import collect_pngs, optimize_file, optimize_files
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Losslessly optimize PNG images")
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        type=Path,
+        default=[Path("assets/img/banners")],
+        help="Files or directories to optimize (default: assets/img/banners/)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be optimized without making changes",
+    )
+    args = parser.parse_args()
+
+    pngs = collect_pngs(args.paths)
+    if not pngs:
+        print("No PNG files found.")
+        return 0
+
+    if args.dry_run:
+        for png in pngs:
+            print(f"  {png}: {png.stat().st_size // 1024}K")
+        print(f"Would optimize {len(pngs)} file(s)")
+        return 0
+
+    total_before = 0
+    total_after = 0
+    for png in pngs:
+        before, after = optimize_file(png)
+        saved = before - after
+        pct = (saved / before * 100) if before else 0
+        if saved > 0:
+            print(f"  {png}: {before // 1024}K -> {after // 1024}K ({pct:.0f}% saved)")
+        total_before += before
+        total_after += after
+
+    saved = total_before - total_after
+    pct = (saved / total_before * 100) if total_before else 0
+    print(
+        f"Optimized {len(pngs)} file(s): "
+        f"{total_before // 1024}K -> {total_after // 1024}K, saved {saved // 1024}K ({pct:.0f}%)"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
