@@ -6,7 +6,7 @@
 
 ## Scripts
 - **Setup**: `script/bootstrap` - Install tools and dependencies
-- **Build**: `script/build` - Run linting checks then build with Docker Compose
+- **Build**: `script/build` - Run linting, generate OG banners, then build with Hugo
 - **Formatting**: `script/fmt` - Format Python code with isort and black (excludes `.venv/`)
   - Runs silently by default, use `DEBUG=true script/fmt` for verbose output
   - Only shows output on errors or when DEBUG mode is enabled
@@ -220,9 +220,6 @@ Use sub-partials when logic is complex/duplicated across templates. Each sub-par
 ### Markdown Rendering
 - `_default/_markup/render-heading.html` - Custom heading renderer
 - `_markup/render-codeblock-mermaid.html` - Mermaid diagram support
-
-### Data Templates
-- `index.post-data.csv` - Post metadata export
 
 ## Modification Guidelines
 - Site structure: `_default/baseof.html`

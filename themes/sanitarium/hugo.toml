@@ -2,11 +2,6 @@ baseURL = 'https://example.org/'
 languageCode = 'en-US'
 title = 'My New Hugo Site'
 
-[outputFormats.PostData]
-  mediaType = "text/csv"
-  isPlainText = true
-  notAlternative = true
-
 [outputFormats.Banner]
   mediaType = "text/html"
   baseName = "banner"

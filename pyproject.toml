@@ -23,7 +23,11 @@ dev = [
     "lxml>=5.0.0",
     "isort>=6.0.1",
     "black>=25.1.0",
+    "playwright>=1.40.0",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["script"]
 
 [tool.uv]
 package = true

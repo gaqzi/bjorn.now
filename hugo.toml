@@ -23,7 +23,7 @@ cascade = [
 
 # Output formats
 [outputs]
-  home = ["HTML", "RSS", "PostData"]
+  home = ["HTML", "RSS"]
   page = ["HTML", "Banner"]
   section = ["HTML", "RSS"]
 

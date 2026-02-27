@@ -23,7 +23,7 @@
 {{ end }}
 {{ end }}
 
-{{ if and (not $ogImage) (in .Site.Params.bannerSections .Section) }}
+{{ if not $ogImage }}
     {{ $slug := "" }}
     {{ if .File }}
         {{ $slug = .File.ContentBaseName }}

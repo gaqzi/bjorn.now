@@ -39,6 +39,12 @@ if [ "$RUN_LINT" = true ]; then
   script/lint || exit 1
 fi
 
+# Generate OG screenshots for changed content
+if has_changes_in "content/"; then
+  [ -n "$VERBOSE" ] && echo "Generating OG screenshots for changed content..."
+  script/genscreenshots.py --staged-only || exit 1
+fi
+
 if [ "$RUN_TESTS" = true ]; then
   [ -n "$VERBOSE" ] && echo "Running tests (script/src/tests changed)..."
   script/test || exit 1

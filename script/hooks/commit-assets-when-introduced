@@ -11,7 +11,7 @@ set -e
 STAGED_CHANGES=$(git diff --cached)
 
 # Find all untracked and unstaged files under assets/
-UNSTAGED_ASSETS=$(git status --porcelain | grep "^??\|^ M\|^M " | grep "assets/" | awk '{print $2}')
+UNSTAGED_ASSETS=$(git status --porcelain | grep "^??\|^ M\|^MM" | grep "assets/" | awk '{print $2}')
 
 # Array to collect problematic files
 MISSING_FILES=()

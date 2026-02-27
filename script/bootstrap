@@ -471,6 +471,9 @@ log_info "Installing uv and syncing project dependencies"
 installUv &&
   uv sync --group dev || exit 1
 
+log_info "Installing Playwright browsers for OG image generation"
+uv run playwright install chromium || exit 1
+
 log_info "Installing xsv for CSV processing"
 installXsv
 

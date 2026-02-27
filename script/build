@@ -5,19 +5,8 @@ set -e
 # Run linting checks before building
 script/lint
 
-set -x
-ARGS="$@"
-case "$ARGS" in
-"")
-  ARGS='up --abort-on-container-exit --exit-code-from=genbanners'
-  ;;
-destroy)
-  ARGS='down -v'
-  ;;
-*)
-  # Do nothing, assume it's fine
-  ;;
-esac
+# Generate OG images for all content
+script/genscreenshots.py
 
-# Starts the hugo server and then creates all the banners
-exec docker compose -f docker-compose.yaml -f docker-compose.once.yaml $ARGS
+# Build the site
+hugo --minify
