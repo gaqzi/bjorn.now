@@ -1,7 +1,7 @@
 ---
 authors: ['björn']
 date: '2026-02-28T12:38:16+01:00'
-lastmod: '2026-02-28T12:38:16+01:00'
+lastmod: '2026-02-28T21:47:47+01:00'
 location: Sweden
 title: My genie has a genie
 subtitle: A prompt for building experts to help you see their world
@@ -222,5 +222,7 @@ META-INSTRUCTIONS
 I have since then created a vibe coding expert. To give it more context, since many of the concepts are outside the knowledge/training window, I prompted it to learn about Gas Town by searching (the intro post + emergency manual) as well as the vibe coding book by Gene and Steve and people's reactions to it online. 
 
 Into a project the prompt went. Our first conversation was about creating principles for coding in Go. I realized I was looking too narrowly, only focusing on tests. I am feeling the need to look at the output because I don't trust the system around the code. And I don't trust the output because I don't have enough validations that I trust. And to get there, I will need a combination of linters and skills.
+
+**Note:** The problem with building an expert prompt like this is that as a non-expert [you don't know what you don't know]({{< relref "2026-02-28-you-dont-know-what-you-dont-know.md" >}}), so here be dragons.
 
 Next up, I'll start building `bjornstack`, which will be my opinions and guard rails for the genie as it's working on my behalf. Coincidentally it shortens to `bs` which will make it easier for others to reference it proper 😉
