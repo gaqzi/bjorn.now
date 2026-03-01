@@ -3,12 +3,12 @@ authors: ['björn']
 date: '2026-03-01T21:59:12+01:00'
 lastmod: '2026-03-01T21:59:12+01:00'
 location: Sweden
-title: 'Thoughts on Welcome to Gas Town by Bill De Hora'
+title: 'Thoughts on Welcome to Gas Town by Bill De hÓra'
 tags: ['gas-town']
 daily: ['2026-03-01']
 series: ['working-with-genies']
 ---
-[Thoughts on Welcome to Gas Town](https://dehora.net/journal/2026/2/initial-thoughts-on-welcome-to-gas-town) by Bill De hÓra:
+[Thoughts on Welcome to Gas Town](https://dehora.net/journal/2026/2/initial-thoughts-on-welcome-to-gas-town) by Bill de hÓra:
 
 > Steve’s description of Gas Town itself reads like a mash-up of social deduction game mechanics, control-plane software, and management theory. It feels, especially on the latter aspect, heavily designed in a [modernist urban planning](https://en.wikipedia.org/wiki/From_Bauhaus_to_Our_House) sense. Personally, for AI and agent-driven development, **I find myself veering toward constraint-based approaches: establish invariants/laws and let agents explore within them.** Gas Town can be read as an attempt to define invariants through roles that allow agents to make progress in an eyes-off/hands-off way. And so my first take is that it leans /hard/ into roles and division of labour. I keep wondering whether some kind of ‘physics’ or rubric-based approach might ultimately be the better primitives. To be fair, you have to start somewhere; there needs to be a bootstrap. And Gas Town, importantly, actually exists.
 
