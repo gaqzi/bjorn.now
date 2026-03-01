@@ -373,5 +373,8 @@
   },
   "assets/img/banners/2026-03-01-initial-thoughts-on-welcome-to-gas-town-by-bill-de-hora.png": {
     "content_hash": "2bb3d6e5e28050ac261e33089816ca6d"
+  },
+  "assets/img/banners/2026-03-01-git-rm-cached-will-remove-something-from-git-but-not-the-filesystem.png": {
+    "content_hash": "164f4e81f5ccb2e6fe81c811c7e4d4da"
   }
 }
