@@ -376,5 +376,8 @@
   },
   "assets/img/banners/2026-03-01-git-rm-cached-will-remove-something-from-git-but-not-the-filesystem.png": {
     "content_hash": "164f4e81f5ccb2e6fe81c811c7e4d4da"
+  },
+  "assets/img/banners/2026-03-02T140555.png": {
+    "content_hash": "61bc4cd1760e9ac7bd13fb0ee6c82dcf"
   }
 }
