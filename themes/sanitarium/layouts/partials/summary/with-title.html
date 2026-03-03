@@ -8,7 +8,7 @@
         </hgroup>
     </a>
 
-    {{ partial "image-slideshow.html" . }}
+    {{ with .Params.images }}{{ partial "image-slideshow.html" (dict "images" .) }}{{ end }}
 
     <div class="{{ if and (not .Params.full) .Truncated }}preview{{ end }} post">
         {{ if .Params.full }}

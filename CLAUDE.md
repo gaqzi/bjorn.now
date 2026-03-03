@@ -65,6 +65,15 @@
 - In RSS feeds, images render as plain `<img>` tags stacked before the content
 - Works with any number of images (single image shows without navigation controls)
 - Template files: `partials/image-slideshow.html` (web) and `_default/rss.xml` (feed) — keep in sync
+- **Inline shortcode**: Use `slideshow`/`slide` shortcodes to place slideshows anywhere in content:
+  ```markdown
+  {{</* slideshow */>}}
+    {{</* slide src="/img/photo1.jpg" alt="First image" */>}}
+    {{</* slide src="/img/photo2.jpg" alt="Second image" */>}}
+  {{</* /slideshow */>}}
+  ```
+- Multiple slideshows per post are supported (both front matter and shortcode, or multiple shortcodes)
+- Shortcode slideshows use the same rendering partial (`image-slideshow.html`) as front matter images
 
 ## Structure
 - Content: `content/` (Markdown)
@@ -216,6 +225,7 @@ Use sub-partials when logic is complex/duplicated across templates. Each sub-par
 
 ### Shortcodes
 - `shortcodes/define.html`, `shortcodes/img.html`
+- `shortcodes/slideshow.html` + `shortcodes/slide.html` — inline image slideshow (uses `image-slideshow.html` partial)
 
 ### Markdown Rendering
 - `_default/_markup/render-heading.html` - Custom heading renderer

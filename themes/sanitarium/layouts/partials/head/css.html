@@ -1,4 +1,4 @@
-{{- if .Params.images }}
+{{- if or .Params.images (.HasShortcode "slideshow") }}
   {{- $css := resources.Get "css/slideshow.css" }}
   {{- if not hugo.IsDevelopment }}
     {{- $css = $css | minify | fingerprint }}

@@ -1,5 +1,6 @@
 {{- /* NOTE: When adding features here (e.g. captions), update rss.xml too for feed readers */ -}}
-{{- with .Params.images -}}
+{{- /* Accepts a dict with "images" key: partial "image-slideshow.html" (dict "images" $list) */ -}}
+{{- with .images -}}
 {{- if gt (len .) 0 -}}
 {{- $images := . -}}
 {{- $imageCount := len . -}}

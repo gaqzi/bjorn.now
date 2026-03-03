@@ -18,7 +18,7 @@
     </header>
     {{ end }}
 
-    {{ partial "image-slideshow.html" . }}
+    {{ with .Params.images }}{{ partial "image-slideshow.html" (dict "images" .) }}{{ end }}
 
     <div class="content" {{ if .Params.language }} lang="{{ .Params.language }}"{{ end }}>
         {{ .Content }}

@@ -1,0 +1,10 @@
+{{- /* Individual slide within a {{< slideshow >}} shortcode.
+       Parameters:
+         src  - Image path (in assets directory, e.g. /img/photo.jpg)
+         alt  - Alt text for the image
+*/ -}}
+{{- with .Parent -}}
+  {{- $id := printf "slideshow-%d" .Ordinal -}}
+  {{- $images := $.Page.Store.Get $id -}}
+  {{- $.Page.Store.Set $id ($images | append (dict "src" ($.Get "src") "alt" ($.Get "alt"))) -}}
+{{- end -}}

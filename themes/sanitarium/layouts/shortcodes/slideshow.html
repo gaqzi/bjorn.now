@@ -1,0 +1,12 @@
+{{- /* Slideshow shortcode: wraps one or more {{< slide >}} shortcodes.
+       Usage:
+         {{< slideshow >}}
+           {{< slide src="/img/photo.jpg" alt="Description" >}}
+           {{< slide src="/img/other.png" alt="Another" >}}
+         {{< /slideshow >}}
+*/ -}}
+{{- $id := printf "slideshow-%d" .Ordinal -}}
+{{- .Page.Store.Set $id (slice) -}}
+{{- $_ := .Inner -}}
+{{- $images := .Page.Store.Get $id -}}
+{{- partial "image-slideshow.html" (dict "images" $images) -}}
