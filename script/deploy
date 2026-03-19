@@ -1,5 +1,17 @@
 #!/bin/bash
 
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "Usage: script/deploy"
+    echo ""
+    echo "Deploy public/ to production via rsync, then purge changed"
+    echo "URLs from Cloudflare cache."
+    echo ""
+    echo "Environment variables:"
+    echo "  CLOUDFLARE_API_TOKEN    Cloudflare API token (optional)"
+    echo "  CLOUDFLARE_ZONE_ID     Cloudflare zone ID (optional)"
+    exit 0
+fi
+
 pushd public || exit
 
 tmpfile=$(mktemp)

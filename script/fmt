@@ -2,6 +2,17 @@
 
 set -e
 
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "Usage: script/fmt"
+    echo ""
+    echo "Format all Python files with isort and black (excludes .venv/)."
+    echo "Runs silently by default — only shows output on errors."
+    echo ""
+    echo "Environment variables:"
+    echo "  DEBUG=true    Show verbose output"
+    exit 0
+fi
+
 # Colors for output
 BLUE='\033[0;34m'
 RED='\033[0;31m'

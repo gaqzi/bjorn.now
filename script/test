@@ -2,6 +2,22 @@
 
 set -e
 
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    echo "Usage: script/test [pytest args...]"
+    echo ""
+    echo "Run script/fmt first, then execute pytest."
+    echo "All arguments are passed through to pytest."
+    echo ""
+    echo "Examples:"
+    echo "  script/test                  Run all tests"
+    echo "  script/test -v --tb=short    Verbose with short tracebacks"
+    echo "  script/test -k test_tags     Run matching tests only"
+    echo ""
+    echo "Environment variables:"
+    echo "  DEBUG=true    Show formatting output"
+    exit 0
+fi
+
 # Run formatting first
 script/fmt
 
