@@ -2,18 +2,53 @@
 
 set -e
 
-# Parse arguments to detect --edit, --series, and --commit flags
+usage() {
+    cat <<HELP
+Usage: script/new [OPTIONS] <content-type> [slug-or-content]
+
+Create new content. For scraps, the second argument is the content itself.
+For all other types, it's the slug.
+
+Options:
+  --tags <t1,t2,...>   Comma-separated tags (validated against data/tags.yaml)
+  --series <name>      Assign to a series (validated against content/series/)
+  --location <place>   Override the default location
+  --commit             Commit the new file immediately
+  --edit               Open the file in your editor
+  --help               Show this help
+
+Content types: $(ls archetypes/ | sed 's/\.md$//' | grep -v -E '^(archive|series)$' | tr '\n' ' ')
+
+Examples:
+  script/new scrap "Some quick thought"
+  script/new scrap "Tagged thought" --tags 3d-printing,funny --commit
+  script/new til my-slug --tags golang --series my-series
+HELP
+    exit 0
+}
+
+# Parse arguments
 EDIT_FLAG=false
 COMMIT_FLAG=false
 SERIES_VALUE=""
 LOCATION_VALUE=""
+TAGS_VALUE=""
 ARGS=()
 
 for arg in "$@"; do
-    if [ "$arg" = "--edit" ]; then
+    if [ "$arg" = "--help" ]; then
+        usage
+    elif [ "$arg" = "--edit" ]; then
         EDIT_FLAG=true
     elif [ "$arg" = "--commit" ]; then
         COMMIT_FLAG=true
+    elif [ "$arg" = "--tags" ]; then
+        EXPECT_TAGS_VALUE=true
+    elif [[ "$arg" == --tags=* ]]; then
+        TAGS_VALUE="${arg#--tags=}"
+    elif [ "${EXPECT_TAGS_VALUE:-false}" = true ]; then
+        TAGS_VALUE="$arg"
+        EXPECT_TAGS_VALUE=false
     elif [ "$arg" = "--series" ]; then
         # Next argument will be the series value
         EXPECT_SERIES_VALUE=true
@@ -79,6 +114,27 @@ validate_series() {
     fi
 }
 
+# Get valid tags from data/tags.yaml
+get_valid_tags() {
+    grep -E '^[a-z0-9]' data/tags.yaml | sed 's/:.*$//' || true
+}
+
+# Validate tags
+validate_tags() {
+    local tags_csv=$1
+    local valid_tags
+    valid_tags=$(get_valid_tags)
+
+    IFS=',' read -ra tags <<< "$tags_csv"
+    for tag in "${tags[@]}"; do
+        if ! echo "$valid_tags" | grep -q "^${tag}$"; then
+            echo "Invalid tag: $tag" >&2
+            echo "Valid tags: $(echo "$valid_tags" | tr '\n' ' ')" >&2
+            exit 1
+        fi
+    done
+}
+
 # Get content type
 if [ -z "$CONTENT_TYPE" ]; then
     valid_types=$(get_valid_types)
@@ -90,6 +146,11 @@ fi
 # Validate series if provided
 if [ -n "$SERIES_VALUE" ]; then
     validate_series "$SERIES_VALUE"
+fi
+
+# Validate tags if provided
+if [ -n "$TAGS_VALUE" ]; then
+    validate_tags "$TAGS_VALUE"
 fi
 
 # Generate timestamps
@@ -128,6 +189,19 @@ case "$CONTENT_TYPE" in
         hugo new "$filename"
         ;;
 esac
+
+# Update tags field if --tags flag was provided
+if [ -n "$TAGS_VALUE" ]; then
+    IFS=',' read -ra tags <<< "$TAGS_VALUE"
+    tags_yaml=""
+    for i in "${!tags[@]}"; do
+        if [ "$i" -gt 0 ]; then
+            tags_yaml+=", "
+        fi
+        tags_yaml+="'${tags[$i]}'"
+    done
+    sed -i '' "s/tags: \[\]/tags: [$tags_yaml]/" "$filename"
+fi
 
 # Update series field if --series flag was provided
 if [ -n "$SERIES_VALUE" ]; then
