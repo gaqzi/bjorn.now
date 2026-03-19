@@ -4,7 +4,7 @@ date: '2026-03-19T12:55:19+01:00'
 lastmod: '2026-03-19T12:55:19+01:00'
 location: Sweden
 full: false  # set to true if the full thing should be shown in listings
-title: '2026 03 19 Smallest Test Print First'
+title: 'Smallest test print first'
 tags: ['3d-printing']
 daily: ['2026-03-19']
 series: ['learning-3d-printing']
