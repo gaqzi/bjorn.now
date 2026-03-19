@@ -26,6 +26,11 @@ announcement:
   description: Letting y'all know something
 
 # Concept tags
+3d-printing:
+  display: 3D Printing
+  type: concept
+  description: Designing and printing things, the hobby that was supposed to not be about programming
+
 agile:
   type: concept
   description: Agile methodology, practices, and mindset
