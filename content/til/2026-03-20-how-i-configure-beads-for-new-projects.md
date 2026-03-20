@@ -34,3 +34,5 @@ git commit --amend -CHEAD
 ```
 
 The key thing is `--skip-agents` and then `bd setup claude --project` instead, so you get Claude-specific hooks rather than the generic agent integration.
+
+Then I go ahead and [configure a dolt git remote]({{< relref "2026-03-20-configure-beads-dolt-to-share-via-git.md" >}}) so my beads will be stored alongside my git repo.
