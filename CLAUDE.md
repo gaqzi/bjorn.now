@@ -60,5 +60,6 @@
 - Make incremental commits after each logical step
 - Use descriptive commit messages
 - Before committing a new post, run `script/update-post-timestamps <file>` to remove draft status and set publish time
+- When editing an already-published post, ask whether to update `lastmod` with `script/update-post-timestamps --updated <file>` and wait for an answer before proceeding
 - Test before committing
 - Each commit should leave code in working state

@@ -163,12 +163,21 @@ class HugoPublisher:
         self.parser = FrontMatterParser()
         self.updater = FrontMatterUpdater()
     
-    def create_publishing_plan(self, front_matter: FrontMatter) -> PublishingPlan:
+    def create_publishing_plan(self, front_matter: FrontMatter, updated_only: bool = False) -> PublishingPlan:
         """Determine what changes are needed to publish this post"""
         timestamp = HugoTimestamp.now()
-        
+
+        if updated_only:
+            return PublishingPlan(
+                update_date=False,
+                new_date_value=timestamp,
+                update_lastmod=True,
+                new_lastmod_value=timestamp,
+                remove_draft=False,
+            )
+
         return PublishingPlan(
-            update_date=(front_matter.needs_date_update() or 
+            update_date=(front_matter.needs_date_update() or
                         front_matter.needs_date_creation()),
             new_date_value=timestamp,
             update_lastmod=True,  # Always update
@@ -176,16 +185,16 @@ class HugoPublisher:
             remove_draft=front_matter.is_draft
         )
     
-    def publish(self, filepath: Path) -> PublishingPlan:
+    def publish(self, filepath: Path, updated_only: bool = False) -> PublishingPlan:
         """Publish a draft post and return what was changed"""
         # Read file
         content = self.file_handler.read(filepath)
-        
+
         # Parse it
         front_matter, body = self.parser.parse(content)
-        
+
         # Plan changes
-        plan = self.create_publishing_plan(front_matter)
+        plan = self.create_publishing_plan(front_matter, updated_only=updated_only)
         
         # Apply changes
         new_fm = self.updater.apply_plan(front_matter, plan)
@@ -204,7 +213,13 @@ def main():
     parser.add_argument('filepath', type=Path, help='Path to Hugo post')
     parser.add_argument('--dry-run', action='store_true',
                        help='Show changes without applying them')
-    
+
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--updated', action='store_true',
+                     help='Only update lastmod timestamp (for edits to published posts)')
+    mode.add_argument('--publish', action='store_true', default=True,
+                     help='Update all timestamps and remove draft (default)')
+
     args = parser.parse_args()
     
     if not args.filepath.exists():
@@ -223,7 +238,7 @@ def main():
         original_fm, _ = FrontMatterParser().parse(original_content)
         
         # Execute publishing
-        plan = publisher.publish(args.filepath)
+        plan = publisher.publish(args.filepath, updated_only=args.updated)
         
         # Report results
         prefix = "[DRY RUN] Would update" if args.dry_run else "✓ Updated"
