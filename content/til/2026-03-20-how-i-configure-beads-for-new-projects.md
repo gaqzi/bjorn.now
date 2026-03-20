@@ -18,15 +18,17 @@ As of beads 0.61.0, this is what I run:
 bd init --prefix bt --shared-server --skip-agents
 
 # remove credential key that bd init auto-commits
-git rm --cached .beads/.beads-credential-key && echo .beads-credential-key >> .beads/.gitignore
+git rm --cached .beads/.beads-credential-key
+echo .beads-credential-key >> .beads/.gitignore
 
 # setup a CLAUDE.md and configure claude hooks to re-prime beads
 bd setup claude --project
 bd hooks install
 
-# move beads settings to project settings so it's always available
+# move local settings to project settings
 mv .claude/settings{.local,}.json
 git add .claude/settings.json CLAUDE.md
+
 # amend init commit so .beads-credential-key never enters git
 git commit --amend -CHEAD
 ```

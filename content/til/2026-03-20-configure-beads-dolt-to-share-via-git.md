@@ -18,7 +18,7 @@ After `bd init`, your dolt data only exists locally. You can check with `bd dolt
 Point it at your existing git repo:
 
 ```shell
-bd dolt remote add origin git+ssh://git@github.com/youruser/yourrepo.git
+bd dolt remote add origin git+ssh://git@github.com/you/repo.git
 ```
 
 Then push and verify:
@@ -35,7 +35,7 @@ To avoid doing this manually on every machine, add the remote to `.beads/config.
 
 ```yaml
 sync:
-  git-remote: git+ssh://git@github.com/youruser/yourrepo.git
+  git-remote: git+ssh://git@github.com/you/repo.git
 ```
 
 Anyone cloning the repo can then run `bd bootstrap` and `bd dolt push / pull` will just work.
