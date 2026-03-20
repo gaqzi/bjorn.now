@@ -59,5 +59,6 @@
 ## Workflow Guidelines
 - Make incremental commits after each logical step
 - Use descriptive commit messages
+- Before committing a new post, run `script/update-post-timestamps <file>` to remove draft status and set publish time
 - Test before committing
 - Each commit should leave code in working state
