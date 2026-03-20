@@ -1,7 +1,7 @@
 ---
 authors: ['björn']
 date: '2025-07-07T21:50:00+08:00'
-lastmod: '2025-08-21T17:50:00+08:00'
+lastmod: '2026-03-20T09:23:00+01:00'
 location: Singapore
 title: Working with Go's test cache on CI
 subtitle: 'be fast by avoiding work, while doing the important work'
@@ -19,6 +19,35 @@ aliases:
 I was trying to speed up our slow CI by caching Go builds. The easy win was caching Go's module downloads (via `GOPATH`), but when I added `GOCACHE` for the build cache, I got a pleasant surprise: the tests were caching too. 🥳
 
 I shared the change for review, and a colleague raised a great point: "What about our black box integration tests?" These tests hit APIs and external services that Go can't track as dependencies. If they cache when they shouldn't, we might miss real failures: the tests would pass because they didn't re-run, not because the code actually works.
+
+<details>
+<summary><strong>TL;DR:</strong> I found three ways to handle Go test caching on CI, they are:</summary>
+
+| Approach | Changes Needed | Test Caching |
+|----------|---------------|--------------|
+| `go clean -testcache` | CI config only | ❌ None |
+| `-count=1` | Every test invocation | ❌ None |
+| Environment variables | Shared code/library once | ✅ Full |
+
+**`go clean -testcache`** — wipe all test cache before running. No code changes, no test caching.
+
+**`-count=1`** — skip cache for a specific `go test` invocation. Need to add it everywhere.
+
+**Environment variables** — read your CI's commit SHA (e.g. `GITHUB_SHA`, `DRONE_COMMIT_SHA`) in your test setup. Go auto-invalidates the package's test cache when the value changes. Unit tests still cache, integration tests re-run on new commits as long as you read the variable once in the package. A helper to ensure it doesn't cache:
+
+```go
+func IsIntegrationTest(t *testing.T) {
+    t.Helper()
+    _ = os.Getenv("GITHUB_SHA")
+}
+```
+
+Key behavior:
+- Invalidation is **per-package**, not per-test
+- Reading env vars through library calls still triggers invalidation
+- `go test` with no package target never caches
+- Debug caching decisions with `GODEBUG=gocachetest=1`
+</details>
 
 ## The Fundamental Problem
 
