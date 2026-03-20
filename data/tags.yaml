@@ -153,6 +153,11 @@ alfredapp:
   type: tool
   description: Alfred productivity app for macOS
 
+beads:
+  display: beads
+  type: tool
+  description: Steve Yegge's task tracker for agents
+
 claude-code:
   display: Claude Code
   type: tool
