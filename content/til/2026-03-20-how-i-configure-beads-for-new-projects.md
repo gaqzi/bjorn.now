@@ -1,7 +1,7 @@
 ---
 authors: ['björn']
 date: '2026-03-20T12:31:05+01:00'
-lastmod: '2026-03-20T12:31:05+01:00'
+lastmod: '2026-03-20T13:52:35+01:00'
 location: Sweden
 full: true
 title: 'How I configure beads for new projects'
@@ -31,8 +31,10 @@ git add .claude/settings.json CLAUDE.md
 
 # amend init commit so .beads-credential-key never enters git
 git commit --amend -CHEAD
+
+# share beads data alongside your git repo
+bd dolt remote add origin git+ssh://git@github.com/you/repo.git
+echo -e 'sync:\n  git-remote: git+ssh://git@github.com/you/repo.git' >> .beads/config.yaml
 ```
 
-The key thing is `--skip-agents` and then `bd setup claude --project` instead, so you get Claude-specific hooks rather than the generic agent integration.
-
-Then I go ahead and [configure a dolt git remote]({{< relref "2026-03-20-configure-beads-dolt-to-share-via-git.md" >}}) so my beads will be stored alongside my git repo.
+The key thing is `--skip-agents` and then `bd setup claude --project` instead, so you get Claude-specific hooks rather than the generic agent integration. The [dolt remote lines]({{< relref "2026-03-20-configure-beads-dolt-to-share-via-git.md" >}}) are so your beads data gets stored alongside your git repo.
