@@ -5,7 +5,7 @@ lastmod: '2026-03-20T12:31:05+01:00'
 location: Sweden
 full: false  # set to true if the full thing should be shown in listings
 title: 'Configure beads dolt to share via git'
-tags: ['beads']
+tags: ['beads', 'dolt']
 daily: ['2026-03-20']
 series: []
 ---

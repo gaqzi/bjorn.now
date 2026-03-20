@@ -167,6 +167,11 @@ docker:
   display: Docker
   type: tool
 
+dolt:
+  display: Dolt
+  type: tool
+  description: Version-controlled SQL database, used by beads for local data storage
+
 drone-ci:
   display: Drone CI
   type: tool

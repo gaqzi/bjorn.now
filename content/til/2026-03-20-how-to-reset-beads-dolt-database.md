@@ -5,7 +5,7 @@ lastmod: '2026-03-20T11:29:14+01:00'
 location: Sweden
 full: false  # set to true if the full thing should be shown in listings
 title: "How to reset beads' dolt database"
-tags: ['beads']
+tags: ['beads', 'dolt']
 daily: ['2026-03-20']
 series: []
 ---

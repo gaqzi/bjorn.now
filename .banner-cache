@@ -396,12 +396,15 @@
     "content_hash": "39df1be184350d2247c007a832141412"
   },
   "assets/img/banners/2026-03-20-how-to-reset-beads-dolt-database.png": {
-    "content_hash": "2a836dd2d5043bdc81aa3c8ff9e4a03f"
+    "content_hash": "34fb4d953ab33003669c4bf1a0dcca1e"
   },
   "assets/img/banners/2026-03-20-configure-beads-dolt-to-share-via-git.png": {
-    "content_hash": "40e97d539dabdd90a36e1f3748089e12"
+    "content_hash": "0230329cae3c57e99ba1cdb66514efd7"
   },
   "assets/img/banners/2026-03-20-how-i-configure-beads-for-new-projects.png": {
     "content_hash": "9d339c2c8aaa5ab22772180b06440d70"
+  },
+  "assets/img/banners/2026-03-20-migrate-beads-to-shared-dolt-server.png": {
+    "content_hash": "abbdf2b631181361fd939ee2573adf9d"
   }
 }
