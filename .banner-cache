@@ -397,5 +397,11 @@
   },
   "assets/img/banners/2026-03-20-how-to-reset-beads-dolt-database.png": {
     "content_hash": "2a836dd2d5043bdc81aa3c8ff9e4a03f"
+  },
+  "assets/img/banners/2026-03-20-configure-beads-dolt-to-share-via-git.png": {
+    "content_hash": "ece74d5fe586f60c2f179b2e2efbce6c"
+  },
+  "assets/img/banners/2026-03-20-how-i-configure-beads-for-new-projects.png": {
+    "content_hash": "d4844610415628abea5931665011d370"
   }
 }
