@@ -27,9 +27,9 @@ bd hooks install
 
 # move local settings to project settings
 mv .claude/settings{.local,}.json
-git add .claude/settings.json CLAUDE.md
 
 # amend init commit so .beads-credential-key never enters git
+git add .beads/.gitignore .claude/settings.json CLAUDE.md
 git commit --amend -CHEAD
 
 # share beads data alongside your git repo
