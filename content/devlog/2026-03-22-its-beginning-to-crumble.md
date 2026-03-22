@@ -254,4 +254,4 @@ But it's a hell of a good start that I can adjust and adapt as I learn more abou
 
 I'm going to try this out for a bit and see how the daily and weekly routines feel.
 If you're reading this and interested in trying it out before I share it publicly,
-[send me an email](mailto:ba@bjorn.now?subject=Got+some+crumbs+for+me?) and I'll give you a preview.
+[send me an email](mailto:ba@bjorn.now?subject=Got some crumbs for me?) and I'll give you a preview.
