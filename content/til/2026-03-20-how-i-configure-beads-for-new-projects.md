@@ -1,7 +1,7 @@
 ---
 authors: ['björn']
 date: '2026-03-20T12:31:05+01:00'
-lastmod: '2026-03-20T13:52:35+01:00'
+lastmod: '2026-03-22T11:36:00+01:00'
 location: Sweden
 full: true
 title: 'How I configure beads for new projects'
@@ -11,15 +11,11 @@ series: []
 ---
 I tweak the default beads setup to work with Claude instead of the generic agent integration.
 
-As of beads 0.61.0, this is what I run:
+As of beads 0.62.0, this is what I run:
 
 ```shell
 # configure agents later
-bd init --prefix bt --shared-server --skip-agents
-
-# remove credential key that bd init auto-commits
-git rm --cached .beads/.beads-credential-key
-echo .beads-credential-key >> .beads/.gitignore
+bd init --shared-server --skip-agents
 
 # setup a CLAUDE.md and configure claude hooks to re-prime beads
 bd setup claude --project
@@ -29,7 +25,7 @@ bd hooks install
 mv .claude/settings{.local,}.json
 
 # amend init commit so .beads-credential-key never enters git
-git add .beads/.gitignore .claude/settings.json CLAUDE.md
+git add .claude/settings.json CLAUDE.md
 git commit --amend -CHEAD
 
 # share beads data alongside your git repo
