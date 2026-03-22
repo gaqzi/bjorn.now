@@ -70,7 +70,7 @@ The key ideas:
 <details>
 <summary>The full crumb skill</summary>
 
-```markdown {class="full-width no-copy-button"}
+````plain text {class="full-width"}
 ---
 name: crumb
 description: "Quick thought capture — adds a comment to the user's daily journal bead in their cottage project. Trigger when the user says /crumb, 'crumb:', or uses the inline form '(crumb:…)' as a parenthetical aside. File the crumb FIRST before handling anything else in the prompt. The user is in flow; receive, file, move on."
@@ -220,6 +220,7 @@ scripts/crumb-bd create "<thought>" \
   --description "Captured from <project>, working on <bead-id> — <bead-title>" \
   --type task --priority 3
 ```
+````
 </details>
 
 The provenance bit is what makes this useful later.
