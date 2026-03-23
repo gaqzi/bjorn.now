@@ -424,5 +424,8 @@
   },
   "assets/img/banners/2026-03-23T154848.png": {
     "content_hash": "bbf07084c2f9d9f8d8c59fd8aeb79894"
+  },
+  "assets/img/banners/2026-03-23-how-to-manually-restore-a-dolt-db-from-its-git-remote.png": {
+    "content_hash": "cef404e3597c24cf4f4bda93bcfec30e"
   }
 }
