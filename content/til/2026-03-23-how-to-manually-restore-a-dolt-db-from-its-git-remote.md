@@ -5,7 +5,7 @@ lastmod: '2026-03-23T16:02:49+01:00'
 location: Sweden
 full: true
 title: 'How to manually restore a dolt db from its git remote'
-tags: ['beads']
+tags: ['beads', 'dolt']
 daily: ['2026-03-23']
 series: []
 ---
