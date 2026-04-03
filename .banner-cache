@@ -430,5 +430,8 @@
   },
   "assets/img/banners/2026-03-26-how-to-find-which-dolt-databases-need-to-be-committed.png": {
     "content_hash": "4995cc38f9ceb9bdd229def6ed546e14"
+  },
+  "assets/img/banners/2026-04-03-how-to-recover-from-a-corrupted-dolt-journal.png": {
+    "content_hash": "2501911936d477bda35a730c020d0050"
   }
 }
