@@ -3,7 +3,7 @@ title: 'Now'
 date: 2026-04-06T15:32:00+02:00
 ---
 
-I've been back in Sweden for about eight months now and careful chaos, my company, is up and running, I've paid myself a couple of salaries (earlier than I expected to), and I bought an apartment in Karlstad, right next door to my brother. I'm preparing to renovate, the kitchen is from the 60s and the floors are linoleum/plastic so it's time to make it a bit nicer. My Singapore stuff is clearing customs in Rotterdam and I've told them to take their time so I can get the place in better shape first. 🙂
+I've been back in Sweden for about eight months now and careful chaos, my company, is up and running, I've paid myself a couple of salaries (earlier than I expected, not enough to offset my costs), and I bought an apartment in Karlstad, right next door to my brother. I'm preparing to renovate, the kitchen is from the 60s and the floors are linoleum/plastic so it's time to make it a bit nicer. My Singapore stuff is clearing customs in Rotterdam and I've told them to take their time so I can get the place in better shape first. 🙂
 
 The dark and cold of winter got me in more ways than one, I really had to force myself up before the sun so I mostly didn't, and then I kept getting sick every time I traveled. Electric Callboy in Stockholm in November, sick. The Northern Boys in London in December, sick again. I didn't start feeling normal and energetic until end of January. I'm pretty sure my years of fairly insular living in Singapore didn't prepare my immune system for European crowds, nor my continued home-office-home routine. I'm considering going to a pub once a week to read and have dinner, purely as a medicinal thing. For health. Obviously no other social or enjoyment benefits in this.
 
