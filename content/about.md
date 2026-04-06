@@ -19,6 +19,9 @@ I've been thinking about different ways to share what I'm learning. Not everythi
 
 **[link](/link/):** Things I found useful and want to find again. I'll try to add context about why I'm saving it.
 
+**[Devlog](/devlog/feed.xml):** The less edited, and longer, pieces where I work on something. Trying to show my process and how I thought through something I worked on.
+
+
 <!--
 **[presentation](/presentation/):** Talks I've given that I want to keep track of. Slides and video when available.
 -->
