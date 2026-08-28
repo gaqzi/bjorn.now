@@ -73,6 +73,11 @@ engineering-culture:
   type: concept
   description: How we engineer our culture, or what culture I think engineering should strive for
 
+home-automation:
+  display: Home automation
+  type: concept
+  description: Making the apartment do things on its own, smart bulbs, sensors, and the networking underneath
+
 learning:
   type: concept
   description: How we learn and grow
